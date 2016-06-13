@@ -1,1 +1,8 @@
-ecog-voytek.mat - 1 channel of ecog from Votek's GitHub tutorials.
+ecog-voytek.mat
+	One channel of ECoG data from the Voytek lab’s GitHub tutorials.
+
+extClfiltCAR-mat
+	.mat files ready to be processed for the PSD calculations.
+    - Bandpass filtered from 0.5 - 4.5 Hz
+    - Common average offline
+    - 512 Hz sampling rate
