@@ -2,8 +2,6 @@
 
 This project organizes the efforts to compute the differences in PSD slope between aMCIs, SAs, and their controls, for both task-related and resting-state data. PSDs are computed at both the sensor and source level (source modeling is done through BESA).
 
-## goals
-
 ## project layout
 
 ```
