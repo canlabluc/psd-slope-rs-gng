@@ -26,15 +26,15 @@ from sklearn import linear_model
 # `export_dir`: String specifying the directory to export results to.
 ################################################################################
 
-montage = 'frontal'
+montage = 'dorsal'
 recompute_psds = True
 psd_buffer_lofreq = 7
 psd_buffer_hifreq = 14
 fitting_func = 'ransac'
 fitting_lofreq = 2
 fitting_hifreq = 24
-import_dir = '/Users/jorge/Drive/research/_psd-slope/data/rs/full/source-frontal/MagEvtFiltCAR-mat/'
-export_dir = '/Users/jorge/Drive/research/_psd-slope/runs/'
+import_dir = '/Users/jorge/Drive/research/_psd-slope/data/rs/full/source-dorsal/MagEvtFiltCAR-mat/'
+export_dir = '/Users/jorge/Drive/research/_psd-slope/data/runs/'
 
 ################################################################################
 
@@ -144,6 +144,8 @@ def compute_subject_psds(import_path, import_path_csv):
             subj[i][ch]['eyesO_psd'] = welch(eyesO_windows, 512)
             subj[i][ch]['eyesC_psd_rm_alpha'] = remove_freq_buffer(subj[i][ch]['eyesC_psd'], 7, 14)
             subj[i][ch]['eyesO_psd_rm_alpha'] = remove_freq_buffer(subj[i][ch]['eyesO_psd'], 7, 14)
+        subj[i]['eyesc_nwindows'] = len(eyesC_windows)
+        subj[i]['eyeso_nwindows'] = len(eyesO_windows)
         subj[i]['data'] = np.nan # No longer needed, so clear it from memory
         subj[i]['eyesC_psd'] = np.mean([subj[i][ch]['eyesC_psd'] for ch in range(subj[i]['nbchan'])], axis=0)
         subj[i]['eyesO_psd'] = np.mean([subj[i][ch]['eyesO_psd'] for ch in range(subj[i]['nbchan'])], axis=0)
@@ -203,10 +205,8 @@ def get_subject_slopes(subj, ch, slope_type):
 
 # Make directory for this run and write parameters to file.
 current_time = str(datetime.datetime.now()).split()[0]
-export_dir = export_dir + current_time; n = 1
-while os.path.isdir(export_dir + '-' + str(n) + '-frontal'):
-    export_dir += '-' + str(n)
-export_dir = export_dir + '-' + str(n) + '-frontal' + '/'
+export_dir = export_dir + current_time + '-' + montage + '/'
+# export_dir = export_dir + '-' + str(n) + '-' + montage + '/'
 os.mkdir(export_dir)
 params = open(export_dir + 'parameters.txt', 'w')
 params.write('Time: ' + str(datetime.datetime.now()))
@@ -241,7 +241,9 @@ subj['time_computed'] = current_time
 np.save(filename, subj)
 
 # Define channels, these will form labels for our table.
-if montage == 'dmn':
+if montage == 'sensor-level':
+    channels = ['A01','A02','A03','A04','A05','A06','A07','A08','A09','A10','A11','A12','A13','A14','A15','A16','A17','A18','A19','A20','A21','A22','A23','A24','A25','A26','A27','A28','A29','A30','A31','A32','B01','B02','B03','B04','B05','B06','B07','B08','B09','B10','B11','B12','B13','B14','B15','B16','B17','B18','B19','B20','B21','B22','B23','B24','B25','B26','B27','B28','B29','B30','B31','B32','FRONTAL','LTEMPORAL','CENTRAL','RTEMPORAL','OCCIPITAL']
+elif montage == 'dmn':
     channels = ['PCC','PCCr','PCCv','PCCh','mPFC','mPFCr','mPFCv','mPFCh','LAG','LAGr','LAGv','LAGh','RAG','RAGr','RAGv','RAGh','LLatT','LLatTe1','LLatTe2','LLatTe3','RLatT','RLatTe1','RLatTe2','RLatTe3','Noise1L','Noise1L1','Noise1L2','Noise1L3','Noise1R','Noise1R1','Noise1R2','Noise1R3','Noise2L','Noise2L1','Noise2L2','Noise2L3','Noise2R','Noise2R1','Noise2R2','Noise2R3','Noise1M','Noise1M1','Noise1M2','Noise1M3','Noise2M','Noise2M1','Noise2M2','Noise2M3']
 elif montage == 'frontal':
     channels = ['LdlPFC','LdlPFC1','LdlPFC2','LdlPFC3','RdlPFC','RdlPFC1','RdlPFC2','RdlPFC3','LFRont','LFront1','LFront2','LFront3','RFront','RFront1','RFront2','RFront3','LIPL','LIPLr','LIPLv','LIPLh','RIPL','RIPLr','RIPLv','RIPLh','LIPS','LIPSr','LIPSv','LIPSh','RIPS','RIPSr','RIPSv','RIPSh','Noise1L','Noise1L1','Noise1L2','Noise1L3','Noise1R','Noise1R1','Noise1R2','Noise1R3','Noise2L','Noise2L1','Noise2L2','Noise2L3','Noise2R','Noise2R1','Noise2R2','Noise2R3','NoiseF','NoiseF1','NoiseF2','NoiseF3']
@@ -256,9 +258,11 @@ data = {}
 data['SUBJECT'] = [subj[i]['name'] for i in range(subj['nbsubj'])]
 data['CLASS']   = [subj[i]['class'] for i in range(subj['nbsubj'])]
 data['AGE']     = [subj[i]['age'] for i in range(subj['nbsubj'])]
+data['NWINDOWS_EYESC'] = [subj[i]['eyesc_nwindows'] for i in range(subj['nbsubj'])]
+data['NWINDOWS_EYESO'] = [subj[i]['eyeso_nwindows'] for i in range(subj['nbsubj'])]
 
 df = pd.DataFrame(data)
-df = df[['SUBJECT', 'CLASS', 'AGE']]
+df = df[['SUBJECT', 'CLASS', 'AGE', 'NWINDOWS_EYESC', 'NWINDOWS_EYESO']]
 
 # Add each subject's mean slope.
 df['AVG_PSD_EYESC'] = get_subject_slopes(subj, -1, 'eyesC_slope')
