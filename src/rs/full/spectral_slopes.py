@@ -47,9 +47,12 @@ def get_filelist(import_path):
     return matfiles
 
 def import_subject(subj, i, import_path):
-    """
-    Imports a single subject and adds them to the subj
-    data structure. Additionally, merges
+    """ Imports a single subject and adds them to the subj data structure.
+    Inputs:
+        - subj: Dictionary, contains all subject information. Constructed by
+        compute_subject_psds()
+        - i: Integer, specifies the ID of the current subject being imported.
+        import_path: String, absolute path to directory containing .mat files.
     """
     subj[i] = {}
     datafile = sp.io.loadmat(import_path)
@@ -62,7 +65,17 @@ def import_subject(subj, i, import_path):
     subj[i]['nbchan'] = len(subj[i]['data'])
     return subj
 
-def _print_window_info(events, port_code):
+def get_num_extractable_windows(events, port_code, print_info):
+    """
+    Helper function that returns the total number of windows and seconds
+    able to be extracted from a specified resting state recording.
+    Inputs:
+        - events: List of event codes, each event in the format: [port_code, time_point],
+        such as ['C1', 10249]
+        - port_code: String specifying the events to extract. For example, 'C1' or 'O1'
+        for eyes-closed and eyes-open resting state data, respectively.
+        - print_info: Boolean specifying whether to print info to the terminal. 
+    """
     evts = [[events[i][1], events[i+1][1]] for i in range(len(events)) if events[i][0] == port_code]
     total_wins = 0
     total_secs = 0
@@ -73,8 +86,12 @@ def _print_window_info(events, port_code):
             nwin = (e[1] - e[0])//512 - 1
             total_wins += nwin
             total_secs += secs
-            print('Event {}:\t{} points, {} seconds, {} windows'.format(e, pts, secs, nwin))
-    print('Total windows able to be extracted: ', total_wins)
+            if print_info == True:
+                print('Event {}:\t{} points, {} seconds, {} windows'.format(e, pts, secs, nwin))
+    if print_info == True:
+        print('Total windows able to be extracted: ', total_wins)
+        print('Total seconds able to be extracted: ', total_secs)
+    return total_wins, total_secs
 
 def get_windows(data, events, port_code, nperwindow=512*2, noverlap=512):
     windows = []
@@ -136,10 +153,14 @@ def compute_subject_psds(import_path, import_path_csv):
         subj[i]['class'] = df[df.SUBJECT == subj[i]['name']].CLASS.values[0]
         subj[i]['sex']   = df[df.SUBJECT == subj[i]['name']].SEX.values[0]
 
+        eyesC_windows = get_windows(subj[i]['data'][ch], subj[i]['events'], 'C1')
+        eyesO_windows = get_windows(subj[i]['data'][ch], subj[i]['events'], 'O1')
+
+        # TODO: Determine how many windows we're going to be extracting, and fix
+        # if there are too many
+
         for ch in range(subj[i]['nbchan']):
             subj[i][ch] = {}
-            eyesC_windows = get_windows(subj[i]['data'][ch], subj[i]['events'], 'C1')
-            eyesO_windows = get_windows(subj[i]['data'][ch], subj[i]['events'], 'O1')
             subj[i][ch]['eyesC_psd'] = welch(eyesC_windows, 512)
             subj[i][ch]['eyesO_psd'] = welch(eyesO_windows, 512)
             subj[i][ch]['eyesC_psd_rm_alpha'] = remove_freq_buffer(subj[i][ch]['eyesC_psd'], 7, 14)
