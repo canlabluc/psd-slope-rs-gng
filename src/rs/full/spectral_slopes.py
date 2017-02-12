@@ -164,20 +164,21 @@ def compute_subject_psds(import_path, import_path_csv):
         subj[i]['sex']   = df[df.SUBJECT == subj[i]['name']].SEX.values[0]
 
         # Reorganize events into two separate lists: Eyes closed and eyes open.
-        subj[i]['events']['eyesc'] = [[events[i][1], events[i+1][1]] for i in range(len(events)) if events[i][0] == 'C1']
-        subj[i]['events']['eyeso'] = [[events[i][1], events[i+1][1]] for i in range(len(events)) if events[i][0] == 'O1']
+        subj[i]['events_eyesc'] = [[subj[i]['events'][j][1], subj[i]['events'][j+1][1]] for j in range(len(subj[i]['events'])) if subj[i]['events'][j][0] == 'C1']
+        subj[i]['events_eyeso'] = [[subj[i]['events'][j][1], subj[i]['events'][j+1][1]] for j in range(len(subj[i]['events'])) if subj[i]['events'][j][0] == 'O1']
+        
         # Discard windows from the back of the recording if the subject has more than 100.
-        while len(subj[i]['events']['eyesc']) > nwins_upperlimit:
-            subj[i]['events']['eyesc'].pop()
-        while len(subj[i]['events']['eyeso']) > nwins_upperlimit:
-            subj[i]['events']['eyeso'].pop()
+        while len(subj[i]['events_eyesc']) > nwins_upperlimit:
+            subj[i]['events_eyesc'].pop()
+        while len(subj[i]['events_eyeso']) > nwins_upperlimit:
+            subj[i]['events_eyeso'].pop()
 
         # TODO: Skip subject if nwins too low.
 
         for ch in range(subj[i]['nbchan']):
             subj[i][ch] = {}
-            eyesC_windows = get_windows(subj[i]['data'][ch], subj[i]['events']['eyesc'])
-            eyesO_windows = get_windows(subj[i]['data'][ch], subj[i]['events']['eyeso'])
+            eyesC_windows = get_windows(subj[i]['data'][ch], subj[i]['events_eyesc'])
+            eyesO_windows = get_windows(subj[i]['data'][ch], subj[i]['events_eyeso'])
             subj[i][ch]['eyesC_psd'] = welch(eyesC_windows, 512)
             subj[i][ch]['eyesO_psd'] = welch(eyesO_windows, 512)
             subj[i][ch]['eyesC_psd_rm_alpha'] = remove_freq_buffer(subj[i][ch]['eyesC_psd'], 7, 14)
@@ -246,7 +247,7 @@ current_time = str(datetime.datetime.now()).split()[0]
 export_dir_name = export_dir + current_time + '-' + montage + '/'
 num = 1
 while os.path.isdir(export_dir_name):
-    export_dir_name = export_dir + current_time + '-' + montage + '-' + num + '/'
+    export_dir_name = export_dir + current_time + '-' + montage + '-' + str(num) + '/'
     num += 1
 export_dir = export_dir_name
 os.mkdir(export_dir)
