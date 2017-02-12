@@ -65,7 +65,7 @@ def import_subject(subj, i, import_path):
     subj[i]['nbchan'] = len(subj[i]['data'])
     return subj
 
-def get_num_extractable_windows(events, port_code, print_info):
+def get_num_extractable_windows(events, print_info):
     """
     Helper function that returns the total number of windows and seconds
     able to be extracted from a specified resting state recording.
@@ -74,32 +74,40 @@ def get_num_extractable_windows(events, port_code, print_info):
         such as ['C1', 10249]
         - port_code: String specifying the events to extract. For example, 'C1' or 'O1'
         for eyes-closed and eyes-open resting state data, respectively.
-        - print_info: Boolean specifying whether to print info to the terminal. 
+        - print_info: Boolean specifying whether to print info to the terminal.
+
+    get_num_extractable_windows assumes that we're looking for windows of 2-second lengths,
+    with 50% overlap. Thus, 3 seconds of extractable data provides us with 2 windows.
     """
-    evts = [[events[i][1], events[i+1][1]] for i in range(len(events)) if events[i][0] == port_code]
-    total_wins = 0
-    total_secs = 0
-    for e in evts:
-        if (e[1] - e[0]) >= 1024:
-            pts  = e[1] - e[0]
-            secs = (e[1] - e[0])//512
-            nwin = (e[1] - e[0])//512 - 1
+    for event in events:
+        # If we can extract at least two seconds...
+        if (event[1] - event[0]) >= 1024:
+            points = event[1] - event[0]
+            secs   = (event[1] - event[0])//512
+            nwin   = (event[1] - event[0])//512 - 1 # Assuming 50% window overlap.
             total_wins += nwin
             total_secs += secs
             if print_info == True:
-                print('Event {}:\t{} points, {} seconds, {} windows'.format(e, pts, secs, nwin))
+                print('Event {}:\t{} points, {} seconds, {} windows'.format(event, points, secs, nwin))
     if print_info == True:
         print('Total windows able to be extracted: ', total_wins)
         print('Total seconds able to be extracted: ', total_secs)
     return total_wins, total_secs
 
 def get_windows(data, events, port_code, nperwindow=512*2, noverlap=512):
+    """ Grabs windows of data of type port_code using events information.
+    Arguments:
+        data:       A channel of data from which to extract windows.
+        events:     List of time segments from which to extract data, with a time
+                    segment in the format: [start_timepoint, ending_timepoint]
+        port_code:  String specifying the events to extract. For example, 'C1' or 'O1'
+                    for eyes-closed and eyes-open resting state data, respectively.
+        nperwindow: Time-points to use per window. Default value, provided sampling rate
+                    is 512 Hz, is 2 seconds.
+        noverlap:   Overlap of windows. Default is 50%.
+    """
     windows = []
-    # The following line restructures events of type port_code into the
-    # following format:
-    #         [start_time, end_time]
-    evts = [[events[i][1], events[i+1][1]] for i in range(len(events)) if events[i][0] == port_code]
-    for event in evts:
+    for event in events:
         if event[1]-event[0] >= nperwindow:
             nwindows = (event[1] - event[0])//noverlap - 1
             for i in range(nwindows):
@@ -138,7 +146,8 @@ def compute_subject_psds(import_path, import_path_csv):
     if len(missing) != 0:
         for s in missing:
             print('ERROR: Specified csv does not contain information for subject {}.\n'.format(s))
-        raise Exception('Missing subject information from csv.')
+        raise Exception('Missing subject information from csv. Either remove subject file from\n'+
+                        'processing pipeline or add subject information to csv file.')
 
     subj = {}
     subj['nbsubj'] = len(matfiles)
@@ -146,21 +155,26 @@ def compute_subject_psds(import_path, import_path_csv):
     subj['f'] = subj['f'].reshape(len(subj['f']), 1)
     subj['f_rm_alpha'] = remove_freq_buffer(subj['f'], 7, 14)
     for i in range(len(matfiles)):
-        print("Processing: {}... ".format(matfiles[i].split('/')[-1]), end='')
+        print('Processing: {}... '.format(matfiles[i].split('/')[-1]), end='')
 
         subj = import_subject(subj, i, matfiles[i])
         subj[i]['age']   = df[df.SUBJECT == subj[i]['name']].AGE.values[0]
         subj[i]['class'] = df[df.SUBJECT == subj[i]['name']].CLASS.values[0]
         subj[i]['sex']   = df[df.SUBJECT == subj[i]['name']].SEX.values[0]
 
-        eyesC_windows = get_windows(subj[i]['data'][ch], subj[i]['events'], 'C1')
-        eyesO_windows = get_windows(subj[i]['data'][ch], subj[i]['events'], 'O1')
-
-        # TODO: Determine how many windows we're going to be extracting, and fix
-        # if there are too many
+        # Reorganize events into two separate lists: Eyes closed and eyes open.
+        subj[i]['events']['eyesc'] = [[events[i][1], events[i+1][1]] for i in range(len(events)) if events[i][0] == 'C1']
+        subj[i]['events']['eyeso'] = [[events[i][1], events[i+1][1]] for i in range(len(events)) if events[i][0] == 'O1']
+        # Discard windows from the back of the recording if the subject has more than 100.
+        while len(subj[i]['events']['eyesc']) > 100:
+            subj[i]['events']['eyesc'].pop()
+        while len(subj[i]['events']['eyeso']) > 100:
+            subj[i]['events']['eyeso'].pop()
 
         for ch in range(subj[i]['nbchan']):
             subj[i][ch] = {}
+            eyesC_windows = get_windows(subj[i]['data'][ch], subj[i]['events'], 'C1')
+            eyesO_windows = get_windows(subj[i]['data'][ch], subj[i]['events'], 'O1')
             subj[i][ch]['eyesC_psd'] = welch(eyesC_windows, 512)
             subj[i][ch]['eyesO_psd'] = welch(eyesO_windows, 512)
             subj[i][ch]['eyesC_psd_rm_alpha'] = remove_freq_buffer(subj[i][ch]['eyesC_psd'], 7, 14)
@@ -172,7 +186,7 @@ def compute_subject_psds(import_path, import_path_csv):
         subj[i]['eyesO_psd'] = np.mean([subj[i][ch]['eyesO_psd'] for ch in range(subj[i]['nbchan'])], axis=0)
         subj[i]['eyesC_psd_rm_alpha'] = remove_freq_buffer(subj[i]['eyesC_psd'], 7, 14)
         subj[i]['eyesO_psd_rm_alpha'] = remove_freq_buffer(subj[i]['eyesO_psd'], 7, 14)
-        print("Done.")
+        print('Done.')
     return subj
 
 def linreg_slope(f, psd, lofreq, hifreq):
