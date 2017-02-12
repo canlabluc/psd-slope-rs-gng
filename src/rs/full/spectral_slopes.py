@@ -33,6 +33,7 @@ psd_buffer_hifreq = 14
 fitting_func = 'ransac'
 fitting_lofreq = 2
 fitting_hifreq = 24
+nwins_upperlimit = 100
 import_dir = '/Users/jorge/Drive/research/_psd-slope/data/rs/full/source-dorsal/MagEvtFiltCAR-mat/'
 export_dir = '/Users/jorge/Drive/research/_psd-slope/data/runs/'
 
@@ -94,7 +95,7 @@ def get_num_extractable_windows(events, print_info):
         print('Total seconds able to be extracted: ', total_secs)
     return total_wins, total_secs
 
-def get_windows(data, events, port_code, nperwindow=512*2, noverlap=512):
+def get_windows(data, events, nperwindow=512*2, noverlap=512):
     """ Grabs windows of data of type port_code using events information.
     Arguments:
         data:       A channel of data from which to extract windows.
@@ -166,15 +167,17 @@ def compute_subject_psds(import_path, import_path_csv):
         subj[i]['events']['eyesc'] = [[events[i][1], events[i+1][1]] for i in range(len(events)) if events[i][0] == 'C1']
         subj[i]['events']['eyeso'] = [[events[i][1], events[i+1][1]] for i in range(len(events)) if events[i][0] == 'O1']
         # Discard windows from the back of the recording if the subject has more than 100.
-        while len(subj[i]['events']['eyesc']) > 100:
+        while len(subj[i]['events']['eyesc']) > nwins_upperlimit:
             subj[i]['events']['eyesc'].pop()
-        while len(subj[i]['events']['eyeso']) > 100:
+        while len(subj[i]['events']['eyeso']) > nwins_upperlimit:
             subj[i]['events']['eyeso'].pop()
+
+        # TODO: Skip subject if nwins too low.
 
         for ch in range(subj[i]['nbchan']):
             subj[i][ch] = {}
-            eyesC_windows = get_windows(subj[i]['data'][ch], subj[i]['events'], 'C1')
-            eyesO_windows = get_windows(subj[i]['data'][ch], subj[i]['events'], 'O1')
+            eyesC_windows = get_windows(subj[i]['data'][ch], subj[i]['events']['eyesc'])
+            eyesO_windows = get_windows(subj[i]['data'][ch], subj[i]['events']['eyeso'])
             subj[i][ch]['eyesC_psd'] = welch(eyesC_windows, 512)
             subj[i][ch]['eyesO_psd'] = welch(eyesO_windows, 512)
             subj[i][ch]['eyesC_psd_rm_alpha'] = remove_freq_buffer(subj[i][ch]['eyesC_psd'], 7, 14)
@@ -240,8 +243,12 @@ def get_subject_slopes(subj, ch, slope_type):
 
 # Make directory for this run and write parameters to file.
 current_time = str(datetime.datetime.now()).split()[0]
-export_dir = export_dir + current_time + '-' + montage + '/'
-# export_dir = export_dir + '-' + str(n) + '-' + montage + '/'
+export_dir_name = export_dir + current_time + '-' + montage + '/'
+num = 1
+while os.path.isdir(export_dir_name):
+    export_dir_name = export_dir + current_time + '-' + montage + '-' + num + '/'
+    num += 1
+export_dir = export_dir_name
 os.mkdir(export_dir)
 params = open(export_dir + 'parameters.txt', 'w')
 params.write('Time: ' + str(datetime.datetime.now()))
@@ -251,6 +258,7 @@ params.write('\npsd_buffer_hifreq = ' + str(psd_buffer_hifreq))
 params.write('\nfitting_func = ' + str(fitting_func))
 params.write('\nfitting_lofreq = ' + str(fitting_lofreq))
 params.write('\nfitting_hifreq = ' + str(fitting_hifreq))
+params.write('\nnwins_upperlimit = ' + str(nwins_upperlimit))
 params.write('\nimport_dir = ' + str(import_dir))
 params.write('\nexport_dir = ' + str(export_dir))
 params.close()
