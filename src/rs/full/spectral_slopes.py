@@ -26,7 +26,7 @@ from sklearn import linear_model
 # `export_dir`: String specifying the directory to export results to.
 ################################################################################
 
-montage = 'dorsal'
+montage = 'ventral'
 recompute_psds = True
 psd_buffer_lofreq = 7
 psd_buffer_hifreq = 14
@@ -34,8 +34,9 @@ fitting_func = 'ransac'
 fitting_lofreq = 2
 fitting_hifreq = 24
 nwins_upperlimit = 100
-import_dir = '/Users/jorge/Drive/research/_psd-slope/data/rs/full/source-dorsal/MagEvtFiltCAR-mat/'
-export_dir = '/Users/jorge/Drive/research/_psd-slope/data/runs/'
+import_dir = '/Users/jorge/Drive/research/_psd-slope/data/rs/full/source-ventral/MagEvtFiltCAR-mat/'
+# export_dir = '/Users/jorge/Drive/research/_psd-slope/data/runs/'
+export_dir = '/Users/jorge/'
 
 ################################################################################
 
@@ -166,19 +167,16 @@ def compute_subject_psds(import_path, import_path_csv):
         # Reorganize events into two separate lists: Eyes closed and eyes open.
         subj[i]['events_eyesc'] = [[subj[i]['events'][j][1], subj[i]['events'][j+1][1]] for j in range(len(subj[i]['events'])) if subj[i]['events'][j][0] == 'C1']
         subj[i]['events_eyeso'] = [[subj[i]['events'][j][1], subj[i]['events'][j+1][1]] for j in range(len(subj[i]['events'])) if subj[i]['events'][j][0] == 'O1']
-        
-        # Discard windows from the back of the recording if the subject has more than 100.
-        while len(subj[i]['events_eyesc']) > nwins_upperlimit:
-            subj[i]['events_eyesc'].pop()
-        while len(subj[i]['events_eyeso']) > nwins_upperlimit:
-            subj[i]['events_eyeso'].pop()
-
-        # TODO: Skip subject if nwins too low.
 
         for ch in range(subj[i]['nbchan']):
             subj[i][ch] = {}
             eyesC_windows = get_windows(subj[i]['data'][ch], subj[i]['events_eyesc'])
             eyesO_windows = get_windows(subj[i]['data'][ch], subj[i]['events_eyeso'])
+            # Discard windows from the back of the recording if the subject has more than 100.
+            while len(eyesC_windows) > nwins_upperlimit:
+                eyesC_windows.pop()
+            while len(eyesO_windows) > nwins_upperlimit:
+                eyesO_windows.pop()
             subj[i][ch]['eyesC_psd'] = welch(eyesC_windows, 512)
             subj[i][ch]['eyesO_psd'] = welch(eyesO_windows, 512)
             subj[i][ch]['eyesC_psd_rm_alpha'] = remove_freq_buffer(subj[i][ch]['eyesC_psd'], 7, 14)
@@ -277,6 +275,7 @@ elif fitting_func == 'ransac':
     regr = ransac_slope
 
 # Fit lines to slopes using specified function and frequency range.
+print('Fitting to PSD slopes...')
 subj = fit_slopes(subj, regr, fitting_lofreq, fitting_hifreq)
 
 # Save results.
