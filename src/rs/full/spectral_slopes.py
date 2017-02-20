@@ -219,6 +219,7 @@ def fit_slopes(subj, regr_func, lofreq, hifreq):
     PSD, using regr_func and fitting to datapoints between lofreq and hifreq.
     """
     for i in range(subj['nbsubj']):
+        print('Fitting: {}... '.format(subj[i]['name']), end='')
         # Per-subject PSD average fitting
         subj[i]['eyesC_slope'], subj[i]['eyesC_fitline'] = regr_func(subj['f'], subj[i]['eyesC_psd'], lofreq, hifreq)
         subj[i]['eyesO_slope'], subj[i]['eyesO_fitline'] = regr_func(subj['f'], subj[i]['eyesO_psd'], lofreq, hifreq)
@@ -226,6 +227,7 @@ def fit_slopes(subj, regr_func, lofreq, hifreq):
             # Per-channel PSD fitting
             subj[i][ch]['eyesC_slope'], subj[i][ch]['eyesC_fitline'] = regr_func(subj['f'], subj[i][ch]['eyesC_psd_rm_alpha'], lofreq, hifreq)
             subj[i][ch]['eyesO_slope'], subj[i][ch]['eyesO_fitline'] = regr_func(subj['f'], subj[i][ch]['eyesO_psd_rm_alpha'], lofreq, hifreq)
+        print('Done.')
     return subj
 
 def get_subject_slopes(subj, ch, slope_type):
