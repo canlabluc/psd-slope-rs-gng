@@ -147,6 +147,9 @@ def compute_subject_psds(import_path, import_path_csv, cut_recording_length):
         subj[i]['sex']   = df[df.SUBJECT == subj[i]['name']].SEX.values[0]
 
         # Reorganize events into two separate lists: Eyes closed and eyes open.
+        # Additionally, events are reformatted:
+        # Old format: [124843, 'C1', 21], [125867, 'C2', 22], ...
+        # New format: [124843, 125867], ...
         subj[i]['events_eyesc'] = [[subj[i]['events'][j][1], subj[i]['events'][j+1][1]] for j in range(len(subj[i]['events'])) if subj[i]['events'][j][0] == 'C1']
         subj[i]['events_eyeso'] = [[subj[i]['events'][j][1], subj[i]['events'][j+1][1]] for j in range(len(subj[i]['events'])) if subj[i]['events'][j][0] == 'O1']
 
@@ -169,16 +172,17 @@ def compute_subject_psds(import_path, import_path_csv, cut_recording_length):
                 # Case 3: Last event starts after 7 mins. Remove this event.
                 if subj[i]['events_eyeso'][-1][0] > 215040:
                     subj[i]['events_eyeso'].pop()
-                    
+
         for ch in range(subj[i]['nbchan']):
             subj[i][ch] = {}
             eyesC_windows = get_windows(subj[i]['data'][ch], subj[i]['events_eyesc'])
             eyesO_windows = get_windows(subj[i]['data'][ch], subj[i]['events_eyeso'])
-            # Discard windows from the back of the recording if the subject has more than 100.
-            # while len(eyesC_windows) > nwins_upperlimit:
-            #     eyesC_windows.pop()
-            # while len(eyesO_windows) > nwins_upperlimit:
-            #     eyesO_windows.pop()
+            # Discard windows from the back of the recording if we set a limit
+            if nwins_upperlimit != -1:
+                while len(eyesC_windows) > nwins_upperlimit:
+                    eyesC_windows.pop()
+                while len(eyesO_windows) > nwins_upperlimit:
+                    eyesO_windows.pop()
             subj[i][ch]['eyesC_psd'] = welch(eyesC_windows, 512)
             subj[i][ch]['eyesO_psd'] = welch(eyesO_windows, 512)
             subj[i][ch]['eyesC_psd_rm_alpha'] = remove_freq_buffer(subj[i][ch]['eyesC_psd'], 7, 14)
@@ -267,7 +271,7 @@ def main(argv):
     fitting_func = 'ransac'
     fitting_lofreq = 2
     fitting_hifreq = 24
-    nwins_upperlimit = 100
+    nwins_upperlimit = -1
     cut_recording_length = True
     import_dir = '/Users/jorge/Drive/research/_psd-slope/data/rs/full/source-dmn/MagEvtFiltCAR-mat/'
     export_dir = '/Users/jorge/Drive/research/_psd-slope/data/runs/'
@@ -276,7 +280,7 @@ def main(argv):
 
     # If present, take in command-line arguments.
     try:
-        opts, args = getopt.getopt(argv[1:], 'm:i:o:h')
+        opts, args = getopt.getopt(argv[1:], 'm:i:o:hc')
     except getopt.GetoptError:
         print('Error: Bad input. To run:\n')
         print('\tspectral_slopes.py -m <montage> -i <import_dir> -o <export_dir>\n')
@@ -294,6 +298,8 @@ def main(argv):
             import_dir = arg
         elif opt == '-o':
             export_dir = arg
+        elif opt == '-c':
+            cut_recording_length = True
 
     # Make directory for this run and write parameters to file.
     current_time = str(datetime.datetime.now()).split()[0]
@@ -304,30 +310,30 @@ def main(argv):
         num += 1
     export_dir = export_dir_name
     os.mkdir(export_dir)
+
+    parameters = '''
+    Time: {0}
+    montage = {1}
+    recompute_psds = {2}
+    psd_buffer_lofreq = {3}
+    psd_buffer_hifreq = {4}
+    fitting_func = {5}
+    fitting_lofreq = {6}
+    fitting_hifreq = {7}
+    nwins_upperlimit = {8}
+    cut_recording_length = {9}
+    import_dir = {10}
+    export_dir = {11}
+    '''.format(str(datetime.dateime.now()), montage, str(recompute_psds),
+               str(psd_buffer_lofreq), str(psd_buffer_hifreq), str(fitting_func),
+               str(fitting_lofreq), str(fitting_hifreq), str(nwins_upperlimit),
+               str(cut_recording_length), str(import_dir), str(export_dir))
+
     params = open(export_dir + 'parameters.txt', 'w')
-    params.write('Time: ' + str(datetime.datetime.now()))
-    params.write('\nrecompute_psds = ' + str(recompute_psds))
-    params.write('\npsd_buffer_lofreq = ' + str(psd_buffer_lofreq))
-    params.write('\npsd_buffer_hifreq = ' + str(psd_buffer_hifreq))
-    params.write('\nfitting_func = ' + str(fitting_func))
-    params.write('\nfitting_lofreq = ' + str(fitting_lofreq))
-    params.write('\nfitting_hifreq = ' + str(fitting_hifreq))
-    params.write('\nnwins_upperlimit = ' + str(nwins_upperlimit))
-    params.write('\nimport_dir = ' + str(import_dir))
-    params.write('\nexport_dir = ' + str(export_dir))
+    params.write(parameters)
     params.close()
 
-    print(
-    '''
-        spectral_slopes.py
-        Montage: {5}
-        Fitting range: {0} - {1} Hz
-        PSD Buffer:    {2} - {3} Hz
-        Fitting function: {4}
-
-    '''.format(fitting_lofreq, fitting_hifreq, psd_buffer_lofreq,
-               psd_buffer_hifreq, fitting_func, montage)
-    )
+    print(parameters)
 
     # Compute per-channel PSDs for each subject.
     print('Computing PSDs...')
