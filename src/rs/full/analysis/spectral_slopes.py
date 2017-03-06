@@ -22,11 +22,16 @@ from sklearn import linear_model
 
 #### Functions ####
 
-def get_filelist(import_path):
-    matfiles = []
-    for root, dirs, files in os.walk(import_path):
-        matfiles += glob.glob(os.path.join(root, '*.mat'))
-    return matfiles
+
+def get_filelist(import_path, extension):
+  """ 
+  Returns list of file paths from import_path with specified extension.
+  """
+  filelist = []
+  for root, dirs, files in os.walk(import_path):
+      filelist += glob.glob(os.path.join(root, '*.' + extension))
+      return filelist
+
 
 def import_subject(subj, i, import_path):
     """ Imports a single subject and adds them to the subj data structure.
@@ -46,6 +51,7 @@ def import_subject(subj, i, import_path):
     subj[i]['data'] = np.squeeze(datafile['data'])
     subj[i]['nbchan'] = len(subj[i]['data'])
     return subj
+
 
 def get_num_extractable_windows(events, print_info):
     """
@@ -76,6 +82,7 @@ def get_num_extractable_windows(events, print_info):
         print('Total seconds able to be extracted: ', total_secs)
     return total_wins, total_secs
 
+
 def get_windows(data, events, nperwindow=512*2, noverlap=512):
     """ Grabs windows of data of type port_code using events information.
     Arguments
@@ -96,6 +103,7 @@ def get_windows(data, events, nperwindow=512*2, noverlap=512):
                 windows.append(data[event[0] + noverlap*i : event[0] + noverlap*i + nperwindow])
     return windows
 
+
 def welch(windows, srate):
     """
     Takes a list of data segments (each size 1xN), computes each segment's PSD,
@@ -104,12 +112,14 @@ def welch(windows, srate):
     psds = [sp.signal.welch(window, srate, nperseg=len(window), window='hamming')[1] for window in windows]
     return np.mean(psds, axis=0)
 
+
 def remove_freq_buffer(data, lofreq, hifreq):
     """
     Removes a frequency buffer from a PSD or frequency vector.
     """
     data = np.delete(data, range(lofreq*2, hifreq*2))
     return data.reshape(len(data), 1)
+
 
 def compute_subject_psds(import_path, import_path_csv, cut_recording_length):
     """ Returns subj data structure with calculated PSDs and subject information.
@@ -120,7 +130,7 @@ def compute_subject_psds(import_path, import_path_csv, cut_recording_length):
         cut_recording_length: Boolean, specifies whether to cut recordings down to 7
                               minutes.
     """
-    matfiles = get_filelist(import_path)
+    matfiles = get_filelist(import_path, 'mat')
     df = pd.read_csv(import_path_csv)
     df.SUBJECT = df.SUBJECT.astype(str)
 
@@ -197,6 +207,7 @@ def compute_subject_psds(import_path, import_path_csv, cut_recording_length):
         print('Done.')
     return subj
 
+
 def linreg_slope(f, psd, lofreq, hifreq):
     """
     Fits line to the PSD, using simple linear regression.
@@ -207,6 +218,7 @@ def linreg_slope(f, psd, lofreq, hifreq):
     fit_line = model.predict(f)
     return model.coef_[0] * (10**2), fit_line
 
+
 def ransac_slope(f, psd, lofreq, hifreq):
     """
     Robustly fits line to the PSD, using the RANSAC algorithm.
@@ -216,6 +228,7 @@ def ransac_slope(f, psd, lofreq, hifreq):
     model_ransac.fit(f[lofreq*2:hifreq*2], np.log10(psd[lofreq*2:hifreq*2]))
     fit_line = model_ransac.predict(f)
     return model_ransac.estimator_.coef_[0] * (10**2), fit_line
+
 
 def fit_slopes(subj, regr_func, lofreq, hifreq):
     """
@@ -234,6 +247,7 @@ def fit_slopes(subj, regr_func, lofreq, hifreq):
         print('Done.')
     return subj
 
+
 def get_subject_slopes(subj, ch, slope_type):
     """ Returns list of slopes for specified channel of slope_type.
     Arguments:
@@ -246,7 +260,9 @@ def get_subject_slopes(subj, ch, slope_type):
     else:
         return [subj[i][ch][slope_type][0] for i in range(subj['nbsubj'])]
 
+
 ################################################################################
+
 
 def main(argv):
 
@@ -303,10 +319,10 @@ def main(argv):
 
     # Make directory for this run and write parameters to file.
     current_time = str(datetime.datetime.now()).split()[0]
-    export_dir_name = export_dir + current_time + '-' + montage + '/'
+    export_dir_name = export_dir + '/' + current_time + '-' + montage + '/'
     num = 1
     while os.path.isdir(export_dir_name):
-        export_dir_name = export_dir + current_time + '-' + montage + '-' + str(num) + '/'
+        export_dir_name = export_dir + '/' + current_time + '-' + montage + '-' + str(num) + '/'
         num += 1
     export_dir = export_dir_name
     os.mkdir(export_dir)
@@ -324,7 +340,7 @@ def main(argv):
     cut_recording_length = {9}
     import_dir = {10}
     export_dir = {11}
-    '''.format(str(datetime.dateime.now()), montage, str(recompute_psds),
+    '''.format(str(datetime.datetime.now()), montage, str(recompute_psds),
                str(psd_buffer_lofreq), str(psd_buffer_hifreq), str(fitting_func),
                str(fitting_lofreq), str(fitting_hifreq), str(nwins_upperlimit),
                str(cut_recording_length), str(import_dir), str(export_dir))
