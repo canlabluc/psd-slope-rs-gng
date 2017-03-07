@@ -4,6 +4,7 @@ a pandas dataframe.
 """
 
 import os
+import sys
 import glob
 
 import xmltodict
@@ -91,10 +92,10 @@ def print_evt_information(filepath, print_in_secs=True):
         filepath.split('/')[-1], eyesc_trials, eyeso_trials, eyesc_trial_length, eyeso_trial_length))
 
 
-import_path = 'data/clean/'
-extension = 'evt'
+importpath = sys.argv[1]
+exportpath = sys.argv[2]
 
-evt_files = get_filelist(import_path, extension)
+evt_files = get_filelist(importpath, 'evt')
 for i in range(len(evt_files)):
     events_dict = get_event_file(evt_files[i], include_clean_segs=True)
     types = [events_dict[j]['type'] for j in range(len(events_dict))]
@@ -102,4 +103,4 @@ for i in range(len(evt_files)):
 
     df = pd.DataFrame(data={'Type': types, 'Latency': latencies})
     df = df[['Type', 'Latency']]
-    df.to_csv('data/clean/' + evt_files[i].split('/')[-1], index=False, sep='\t')
+    df.to_csv(exportpath + evt_files[i].split('/')[-1], index=False, sep='\t')

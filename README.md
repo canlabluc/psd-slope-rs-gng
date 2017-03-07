@@ -1,6 +1,6 @@
 # psd-slope
 
-This project organizes the efforts to compute the differences in PSD slope between aMCIs, SAs, and their controls, for both task-related (Go-NoGo, referred to as `gng`) and resting-state data (referred to as `rs`). PSDs are computed at both the sensor and source level (source modeling is done through BESA).
+This project organizes efforts to compute the differences in PSD slope between aMCIs, SAs, and their controls, for both task-related (Go-NoGo, referred to as `gng`) and resting-state data (referred to as `rs`). PSDs are computed at both the sensor and source level (source modeling is done through BESA).
 
 For instructions on running a specific analysis, see **docs**.
 

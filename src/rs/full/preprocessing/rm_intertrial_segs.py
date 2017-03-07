@@ -5,6 +5,7 @@ space.
 """
 
 import os
+import sys
 import glob
 
 import numpy as np
@@ -79,11 +80,14 @@ def print_seg_code_information(df, i, trials, error_type):
     ))
 
 
+importpath = sys.argv[1]
+exportpath = sys.argv[2]
+
 SEGS_START = ['C1', 'O1']
 SEGS_STOP = ['C2', 'O2']
 TRIALS_START = ['11', '10']
 TRIALS_STOP = ['21', '20']
-files = get_filelist('data/clean/', 'evt')
+files = get_filelist(importpath, 'evt')
 for f in files:
     fname = f.split('/')[-1]
     df = pd.read_csv(f, sep='\t')
@@ -123,4 +127,4 @@ for f in files:
     if found_bad_segs:
         print()
 
-    df.to_csv('data/clean/' + fname, sep='\t', index=False)
+    df.to_csv(exportpath + fname, sep='\t', index=False)

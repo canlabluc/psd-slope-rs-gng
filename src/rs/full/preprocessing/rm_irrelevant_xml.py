@@ -5,6 +5,7 @@ the unneeded headings at the top of the files, such as <bUseQID>
 """
 
 import os
+import sys
 import glob
 
 
@@ -18,7 +19,10 @@ def get_filelist(import_path, extension):
         return filelist
 
 
-files = get_filelist('data/raw/', 'evt')
+importpath = sys.argv[1]
+exportpath = sys.argv[2]
+
+files = get_filelist(importpath, 'evt')
 for file in files:
     lines = open(file, 'r').readlines()
     lines[1] = ''
@@ -31,5 +35,5 @@ for file in files:
            '<Name>252</Name>' in lines[i] or
            '<Name>255</Name>' in lines[i]):
            lines[i] = ''
-    new = open('data/clean/' + file.split('/')[-1], 'w')
+    new = open(exportpath + file.split('/')[-1], 'w')
     new.writelines(lines)

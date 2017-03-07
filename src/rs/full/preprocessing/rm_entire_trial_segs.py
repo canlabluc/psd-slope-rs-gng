@@ -8,6 +8,7 @@ prior to running this script.
 """
 
 import os
+import sys
 import glob
 
 import numpy as np
@@ -24,11 +25,14 @@ def get_filelist(import_path, extension):
         return filelist
 
 
+importpath = sys.argv[1]
+exportpath = sys.argv[2]
+
 TYPES_START = ['11', '10']
 TYPES_STOP = ['21', '20']
 SEGS_START = ['C1', 'O1']
 SEGS_STOP = ['C2', 'O2']
-files = get_filelist('data/clean/', 'evt')
+files = get_filelist(importpath, 'evt')
 for f in files:
 
     df = pd.read_csv(f, sep='\t')
@@ -51,4 +55,4 @@ for f in files:
     df = df.drop(bad_idx)
     df = df.set_index(np.arange(0, df.shape[0], 1))
 
-    df.to_csv('data/clean/' + f.split('/')[-1], sep='\t', index=False)
+    df.to_csv(exportpath + f.split('/')[-1], sep='\t', index=False)
