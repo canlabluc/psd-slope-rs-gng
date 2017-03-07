@@ -2,7 +2,7 @@
 
 ## March 6, 2017
 #### Restructured src/rs/full, and updated evt data.
-src/rs/full has been restructured into preprocessing and analysis folders. 
+src/rs/full has been restructured into preprocessing and analysis folders.
 
 The resting-state evt files we were using for older adults had some problems. See the [evt-data](https://github.com/canlabluc/evt-data) project for more information. This might be a confound for the PSD analysis because some trials in the recording (primarily eyes-closed trials) were being wholly marked as clean data. EMG artifact, which I assume trials sometimes contained, is generally characterized by high-frequency oscillations, which could account for the flatter PSD slope in the older adults.
 
@@ -20,7 +20,7 @@ Producing the clean evt files:
 $ bash src/rs/full/preprocessing/produce_clean_evt_files.sh
 ```
 
-Then, we change the event information for all of the source models and the sensor-level data:
+Then, we change the event information for all of the source models and the sensor-level data, exporting them to new folders with the `MagCleanEvtFiltCAR` designation:
 
 ```matlab
 % Default Mode Network
@@ -64,7 +64,21 @@ set_mat_converter('data/rs/full/source-ventral/MagCleanEvtFiltCAR-set/',...
                   'data/rs/full/source-ventral/MagCleanEvtFiltCAR-mat/');
 
 % Sensor-level data
-% TODO
+mkdir 'data/rs/full/original/ExclFiltCleanEvtCARClust-set'
+mkdir 'data/rs/full/original/ExclFiltCleanEvtCARClust-mat'
+cl_modifyevents('data/rs/full/original/ExclFiltCleanEvtCARClust-set',...
+             'data/rs/full/evt/clean/',...
+             'data/rs/full/original/ExclFiltCleanEvtCARClust-set/',...
+             {'C', 'O'});
+set_mat_converter('data/rs/full/original/ExclFiltCleanEvtCARClust-set/',...
+                  'data/rs/full/original/ExclFiltCleanEvtCARClust-mat/');
 ```
 
-
+Then we run `spectral_slopes.py` on the new data:
+```bash
+$ python src/rs/full/analysis/spectral_slopes.py -m source-level -i data/rs/full/original/ExclFiltCleanEvtCARClust-mat/ -o data/runs/
+$ python src/rs/full/analysis/spectral_slopes.py -m dmn -i data/rs/full/source-dmn/MagCleanEvtFiltCAR-mat/ -o data/runs/
+$ python src/rs/full/analysis/spectral_slopes.py -m frontal -i data/rs/full/source-frontal/MagCleanEvtFiltCAR-mat/ -o data/runs/
+$ python src/rs/full/analysis/spectral_slopes.py -m ventral -i data/rs/full/source-ventral/MagCleanEvtFiltCAR-mat/ -o data/runs/
+$ python src/rs/full/analysis/spectral_slopes.py -m dorsal -i data/rs/full/source-dorsal/MagCleanEvtFiltCAR-mat/ -o data/runs/
+```
