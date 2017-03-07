@@ -9,6 +9,7 @@ The resting-state evt files we were using for older adults had some problems. Se
 Additionally, some of the segments that were marked as being clean data were sitting either completely in the intertrial period or partially inside of it. The preprocessing scripts fix this.
 
 In order to address these issues, I'm running all of our full recording data through the analysis again, but this time with the cleaned up evt files. We'll be able to see how much this impacts:
+
 1. Number of windows able to be extracted for PSD computation (there will likely be considerably fewer extractable windows)
 2. The difference in neural noise between older and younger adults
 
@@ -16,13 +17,15 @@ Here are the steps to do so:
 
 Producing the clean evt files:
 ```
-$ produce_clean_evt_files.sh
+$ bash src/rs/full/preprocessing/produce_clean_evt_files.sh
 ```
 
 Then, we change the event information for all of the source models and the sensor-level data:
 
 ```matlab
 % Default Mode Network
+mkdir 'data/rs/full/source-dmn/MagCleanEvtFiltCAR-set'
+mkdir 'data/rs/full/source-dmn/MagCleanEvtFiltCAR-mat'
 cl_modifyevents('data/rs/full/source-dmn/MagEvtFiltCAR-set/',...
              'data/rs/full/evt/clean/',...
              'data/rs/full/source-dmn/',...
@@ -59,6 +62,9 @@ cl_modifyevents('data/rs/full/source-ventral/MagEvtFiltCAR-set/',...
              {'C', 'O'});
 set_mat_converter('data/rs/full/source-ventral/MagCleanEvtFiltCAR-set/',...
                   'data/rs/full/source-ventral/MagCleanEvtFiltCAR-mat/');
+
+% Sensor-level data
+% TODO
 ```
 
 
