@@ -11,6 +11,7 @@ import sys
 import glob
 import getopt
 import datetime
+
 import numpy as np
 import scipy as sp
 import pandas as pd
@@ -47,7 +48,7 @@ def import_subject(subj, i, import_path):
     subj[i]['srate'] = int(np.squeeze(datafile['srate']))
     subj[i]['events'] = []
     for event in np.squeeze(datafile['evts']):
-        subj[i]['events'].append([event[0][0], event[1][0][0], event[2][0][0]])
+        subj[i]['events'].append([event[0][0].strip(), event[1][0][0], event[2][0][0]])
     subj[i]['data'] = np.squeeze(datafile['data'])
     subj[i]['nbchan'] = len(subj[i]['data'])
     return subj
@@ -84,24 +85,26 @@ def get_num_extractable_windows(events, print_info):
 
 
 def get_windows(data, events, nperwindow=512*2, noverlap=512):
-    """ Grabs windows of data of type port_code using events information.
+    """ Grabs windows of data of size nperwindow with overlap noverlap.
+    TODO: Update. This is technically not a correct implementation of Welch's method,
+    but it works if noverlap is 50 percent of the window length.
     Arguments
         data:       A channel of data from which to extract windows.
         events:     List of time segments from which to extract data, with a time
                     segment in the format: [start_timepoint, ending_timepoint]
-        port_code:  String specifying the events to extract. For example, 'C1' or 'O1'
-                    for eyes-closed and eyes-open resting state data, respectively.
         nperwindow: Time-points to use per window. Default value, provided sampling rate
                     is 512 Hz, is 2 seconds.
         noverlap:   Overlap of windows. Default is 50%.
     """
-    windows = []
+    wins = []
     for event in events:
-        if event[1]-event[0] >= nperwindow:
-            nwindows = (event[1] - event[0])//noverlap - 1
-            for i in range(nwindows):
-                windows.append(data[event[0] + noverlap*i : event[0] + noverlap*i + nperwindow])
-    return windows
+        event_length = event[1] - event[0]
+        if event_length >= nperwindow:
+            current_idx = 0
+            while current_idx + nperwindow <= event_length:
+                wins.append(data[current_idx : current_idx+nperwindow])
+                current_idx += noverlap
+    return wins
 
 
 def welch(windows, srate):
@@ -121,7 +124,7 @@ def remove_freq_buffer(data, lofreq, hifreq):
     return data.reshape(len(data), 1)
 
 
-def compute_subject_psds(import_path, import_path_csv, cut_recording_length):
+def compute_subject_psds(import_path, import_path_csv, cut_recording_length, nwins_upperlimit=-1):
     """ Returns subj data structure with calculated PSDs and subject information.
     Arguments:
         import_path:          String, path to .mat files
@@ -129,6 +132,8 @@ def compute_subject_psds(import_path, import_path_csv, cut_recording_length):
                               age information.
         cut_recording_length: Boolean, specifies whether to cut recordings down to 7
                               minutes.
+        nwins_upperlimit:     Scalar, specifies the upperlimit of windows to extract
+                              from a given subject. A value of -1 means no upper limit.
     """
     matfiles = get_filelist(import_path, 'mat')
     df = pd.read_csv(import_path_csv)
@@ -158,6 +163,7 @@ def compute_subject_psds(import_path, import_path_csv, cut_recording_length):
 
         # Reorganize events into two separate lists: Eyes closed and eyes open.
         # Additionally, events are reformatted:
+        # Old format: ['C1', 124843, 21], ['C2', 125867, 22], ...
         # Old format: [124843, 'C1', 21], [125867, 'C2', 22], ...
         # New format: [124843, 125867], ...
         subj[i]['events_eyesc'] = [[subj[i]['events'][j][1], subj[i]['events'][j+1][1]] for j in range(len(subj[i]['events'])) if subj[i]['events'][j][0] == 'C1']
@@ -187,12 +193,14 @@ def compute_subject_psds(import_path, import_path_csv, cut_recording_length):
             subj[i][ch] = {}
             eyesC_windows = get_windows(subj[i]['data'][ch], subj[i]['events_eyesc'])
             eyesO_windows = get_windows(subj[i]['data'][ch], subj[i]['events_eyeso'])
+
             # Discard windows from the back of the recording if we set a limit
             if nwins_upperlimit != -1:
                 while len(eyesC_windows) > nwins_upperlimit:
                     eyesC_windows.pop()
                 while len(eyesO_windows) > nwins_upperlimit:
                     eyesO_windows.pop()
+
             subj[i][ch]['eyesC_psd'] = welch(eyesC_windows, 512)
             subj[i][ch]['eyesO_psd'] = welch(eyesO_windows, 512)
             subj[i][ch]['eyesC_psd_rm_alpha'] = remove_freq_buffer(subj[i][ch]['eyesC_psd'], 7, 14)
@@ -353,7 +361,8 @@ def main(argv):
 
     # Compute per-channel PSDs for each subject.
     print('Computing PSDs...')
-    subj = compute_subject_psds(import_dir, '../../../data/auxilliary/ya-oa.csv', cut_recording_length)
+    subj = compute_subject_psds(import_dir, 'data/auxilliary/ya-oa.csv',
+                                cut_recording_length, nwins_upperlimit)
     subj['time_computed'] = current_time
     filename = export_dir + 'subj-no-fitting.npy'
     np.save(filename, subj)
