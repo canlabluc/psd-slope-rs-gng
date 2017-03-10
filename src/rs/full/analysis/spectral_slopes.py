@@ -166,8 +166,10 @@ def compute_subject_psds(import_path, import_path_csv, cut_recording_length, nwi
         # Old format: ['C1', 124843, 21], ['C2', 125867, 22], ...
         # Old format: [124843, 'C1', 21], [125867, 'C2', 22], ...
         # New format: [124843, 125867], ...
-        subj[i]['events_eyesc'] = [[subj[i]['events'][j][1], subj[i]['events'][j+1][1]] for j in range(len(subj[i]['events'])) if subj[i]['events'][j][0] == 'C1']
-        subj[i]['events_eyeso'] = [[subj[i]['events'][j][1], subj[i]['events'][j+1][1]] for j in range(len(subj[i]['events'])) if subj[i]['events'][j][0] == 'O1']
+        subj[i]['events_eyesc'] = [[subj[i]['events'][j][1], subj[i]['events'][j+1][1]]\
+                    for j in range(len(subj[i]['events'])) if subj[i]['events'][j][0] == 'C1']
+        subj[i]['events_eyeso'] = [[subj[i]['events'][j][1], subj[i]['events'][j+1][1]]\
+                    for j in range(len(subj[i]['events'])) if subj[i]['events'][j][0] == 'O1']
 
         if cut_recording_length == True and len(subj[i]['data'][0]) > 215040:
             # Cut data down to 7 minutes. 215040 time points at 512 Hz -> 7 mins.
@@ -175,7 +177,8 @@ def compute_subject_psds(import_path, import_path_csv, cut_recording_length, nwi
             while subj[i]['events_eyesc'][-1][1] > 215040:
                 # Case 1: Does not execute. Leave events alone.
                 # Case 2: Last event starts before 7 mins, but ends after 7 mins. Cut end down.
-                if subj[i]['events_eyesc'][-1][0] < 215040 and subj[i]['events_eyesc'][-1][1] > 215040:
+                if subj[i]['events_eyesc'][-1][0] < 215040 and
+                   subj[i]['events_eyesc'][-1][1] > 215040:
                     subj[i]['events_eyesc'][-1][1] = 215040
                 # Case 3: Last event starts after 7 mins. Remove this event.
                 if subj[i]['events_eyesc'][-1][0] > 215040:
@@ -183,7 +186,8 @@ def compute_subject_psds(import_path, import_path_csv, cut_recording_length, nwi
             while subj[i]['events_eyeso'][-1][1] > 215040:
                 # Case 1: Does not execute. Leave events alone.
                 # Case 2: Last event starts before 7 mins, but ends after 7 mins. Cut end down.
-                if subj[i]['events_eyeso'][-1][0] < 215040 and subj[i]['events_eyeso'][-1][1] > 215040:
+                if subj[i]['events_eyeso'][-1][0] < 215040 and
+                   subj[i]['events_eyeso'][-1][1] > 215040:
                     subj[i]['events_eyeso'][-1][1] = 215040
                 # Case 3: Last event starts after 7 mins. Remove this event.
                 if subj[i]['events_eyeso'][-1][0] > 215040:

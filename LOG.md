@@ -1,8 +1,64 @@
 # log
 
+## March 10, 2017
+#### refactored spectral_slopes.py to use Subject class, reimplement welch
+
+
+## March 9, 2017
+#### implemented class-based structure for Subject, implemented evt trial limiting
+Much of the subject-processing functionality in spectral_slopes.py has been seperated into a separate class: Subject, located in subject.py. Event files are now primarily imported straight from the processed df-transformed evts. Additionally, attempting to figure out how to implement welch. Running welch on all of the clean segments and then averaging their PSDs together of course gives us smoother spectra than if we manually take take the spectra of 2-second 50% overlap windows, we seem to not only get more jagged spectra but less distinctive alpha peaks, too. Will look at this tomorrow.
+
+## March 8, 2017
+#### .mat files now include all information, including trials
+Previously, I only exported the clean segment markers into python. In order to be able to work with the trial markers during the spectral_slopes.py analysis, I'm including the trial markers in the event information that gets exported through set_mat_converter.m. The following were used to do this (i.e. same as March 6 entry, but without segments parameter):
+```matlab
+% Default Mode Network
+cl_modifyevents('data/rs/full/source-dmn/MagCleanEvtFiltCAR-set/',...
+                'data/rs/full/evt/clean/',...
+                'data/rs/full/source-dmn/MagCleanEvtFiltCAR-set/');
+set_mat_converter('data/rs/full/source-dmn/MagCleanEvtFiltCAR-set/',...
+                  'data/rs/full/source-dmn/MagCleanEvtFiltCAR-mat/');
+
+% Frontal
+cl_modifyevents('data/rs/full/source-frontal/MagEvtFiltCAR-set/',...
+                'data/rs/full/evt/clean/',...
+                'data/rs/full/source-frontal/MagCleanEvtFiltCAR-set/');
+set_mat_converter('data/rs/full/source-frontal/MagCleanEvtFiltCAR-set/',...
+                  'data/rs/full/source-frontal/MagCleanEvtFiltCAR-mat/');
+
+% Dorsal
+mkdir 'data/rs/full/source-dorsal/MagCleanEvtFiltCAR-set'
+mkdir 'data/rs/full/source-dorsal/MagCleanEvtFiltCAR-mat'
+cl_modifyevents('data/rs/full/source-dorsal/MagEvtFiltCAR-set/',...
+                'data/rs/full/evt/clean/',...
+                'data/rs/full/source-dorsal/MagCleanEvtFiltCAR-set/');
+set_mat_converter('data/rs/full/source-dorsal/MagCleanEvtFiltCAR-set/',...
+                  'data/rs/full/source-dorsal/MagCleanEvtFiltCAR-mat/');
+
+% Ventral
+mkdir 'data/rs/full/source-ventral/MagCleanEvtFiltCAR-set'
+mkdir 'data/rs/full/source-ventral/MagCleanEvtFiltCAR-mat'
+cl_modifyevents('data/rs/full/source-ventral/MagEvtFiltCAR-set/',...
+                'data/rs/full/evt/clean/',...
+                'data/rs/full/source-ventral/MagCleanEvtFiltCAR-set/');
+set_mat_converter('data/rs/full/source-ventral/MagCleanEvtFiltCAR-set/',...
+                  'data/rs/full/source-ventral/MagCleanEvtFiltCAR-mat/');
+
+% Sensor-level data
+mkdir 'data/rs/full/original/ExclFiltCleanEvtCARClust-set'
+mkdir 'data/rs/full/original/ExclFiltCleanEvtCARClust-mat'
+cl_modifyevents('data/rs/full/original/ExclFiltCARClust-set/',...
+                'data/rs/full/evt/clean/',...
+                'data/rs/full/original/ExclFiltCleanEvtCARClust-set/');
+set_mat_converter('data/rs/full/original/ExclFiltCleanEvtCARClust-set/',...
+                  'data/rs/full/original/ExclFiltCleanEvtCARClust-mat/');
+```
+
 ## March 7, 2017
 #### reran spectral_slopes.py on all files, updated get_windows()
-Ran spectral_slopes.py as specified in previous entry. There was an issue with windows being extracted in the incorrect way, resulting in inconsistencies in window size. Reimplementing get_windows() fixed the issue.
+Ran spectral_slopes.py as specified in previous entry. There was an issue with windows being extracted in the incorrect way, resulting in inconsistencies in window size. Reimplementing get_windows() fixed the issue. 
+
+Results of re-running files have been placed in results/clean-evt/.
 
 ## March 6, 2017
 #### Restructured src/rs/full, updated evt data, added evt data to set files.
