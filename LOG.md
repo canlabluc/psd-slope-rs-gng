@@ -2,7 +2,9 @@
 
 ## March 10, 2017
 #### refactored spectral_slopes.py to use Subject class, reimplement welch
+If we try to import subject 112118266 using the Subject class, we get hit by an out of bounds error on attempting to build the event hierarchy. Seems that the evt file got cut off in the middle of trial 105, which indicates the start of an eyes-closed trial. I've manually removed it from the clean evt file.
 
+Finished refactoring spectral_slopes.py to use the Subject class.
 
 ## March 9, 2017
 #### implemented class-based structure for Subject, implemented evt trial limiting

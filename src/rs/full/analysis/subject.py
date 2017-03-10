@@ -5,12 +5,16 @@ import scipy.io
 import scipy.signal
 
 from sklearn import linear_model
+from events import rm_intertrial_segs
 
 class Subject:
 
-    def __init__(self, importpath, importpath_evt, importpath_csv):
+    def __init__(self, importpath, importpath_evt, group='', age=0, sex=0):
         datafile = sp.io.loadmat(importpath)
         self.name   = str(np.squeeze(datafile['name']))
+        self.group  = group
+        self.age    = age
+        self.sex    = sex
         self.srate  = int(np.squeeze(datafile['srate']))
         self.data   = np.squeeze(datafile['data'])
         self.nbchan = len(self.data)
@@ -34,7 +38,7 @@ class Subject:
             elif event_type == '1':
                 self._organize_events_into_df('trials_eyeso', event_type)
 
-                
+
     def _organize_events_into_df(self, event_label, event_type):
         self.events[event_label] = []
         idx = list(map(lambda x: True if x[0] == event_type\
@@ -113,7 +117,7 @@ class Subject:
         return data.reshape(len(data), 1)
 
 
-    def compute_ch_psds(self, match_OA_protocol=True, manual_win_extraction=False, 
+    def compute_ch_psds(self, match_OA_protocol=True, manual_win_extraction=False,
                                             nwins_upperlimit=-1, rand_wins=False):
         """ Returns subj data structure with calculated PSDs and subject information.
         Arguments:
@@ -130,8 +134,6 @@ class Subject:
         self.f = np.linspace(0, 256, 513)
         self.f = self.f.reshape(len(self.f), 1)
         self.f_rm_alpha = self.remove_freq_buffer(self.f, 7, 14)
-        
-        print('Computing PSDs: {}...'.format(self.name), end='')
 
         # Cut trials down to match older adults; 30 seconds
         if match_OA_protocol and self.name[0:3] == '112':
@@ -191,37 +193,43 @@ class Subject:
                 if event_length >= 1024:
                     self.nwins_eyeso += (event_length//512) - 1
         self.data = [] # Clear it from memory since it's no longer needed.
-        print('Done.')
 
 
-    def linreg_slope(self, ch, lofreq, hifreq):
+    def linreg_slope(self, f, psd, lofreq, hifreq):
+        """
+        Fits line to the PSD, using simple linear regression.
+        Returns slope and fit line.
+        """
         model = linear_model.LinearRegression()
-        model.fit(self.f_rm_alpha[lofreq*2:hifreq*2], np.log10(self.psds[ch]['eyesc_rm_alpha'][lofreq*2:hifreq*2]))
-        fit_line = model.predict(self.f_rm_alpha)
+        model.fit(f[lofreq*2:hifreq*2], np.log10(psd[lofreq*2:hifreq*2]))
+        fit_line = model.predict(f)
         return model.coef_[0] * (10**2), fit_line
 
 
-    def ransac_slope(self, ch, lofreq, hifreq):
+    def ransac_slope(self, f, psd, lofreq, hifreq):
         """
         Robustly fits line to the PSD, using the RANSAC algorithm.
         Returns slope and fit line.
         """
-        model = linear_model.RANSACRegressor(linear_model.LinearRegression())
-        model.fit(self.f_rm_alpha[lofreq*2:hifreq*2], np.log10(self.psds[ch]['eyesc_rm_alpha'][lofreq*2:hifreq*2]))
-        fit_line = model.predict(self.f_rm_alpha)
-        return model.estimator_.coef_[0] * (10**2), fit_line
+        model_ransac = linear_model.RANSACRegressor(linear_model.LinearRegression())
+        model_ransac.fit(f[lofreq*2:hifreq*2], np.log10(psd[lofreq*2:hifreq*2]))
+        fit_line = model_ransac.predict(f)
+        return model_ransac.estimator_.coef_[0] * (10**2), fit_line
 
 
-    def fit_slopes(self, regr_func_str, lofreq, hifreq):
-        print('Fitting: {}...'.format(self.name), end='')
+        def fit_slopes(self, regr_func_str='ransac',
+                        buffer_lofreq=7, buffer_hifreq=14,
+                        fitting_lofreq=2, fitting_hifreq=24):
         if regr_func_str == 'ransac':
             regr_func = self.ransac_slope
         elif regr_func_str == 'linreg':
             regr_func = self.linreg_slope
         for ch in range(self.nbchan):
-            self.psds[ch]['eyesc_rm_alpha'] = self.remove_freq_buffer(self.psds[ch]['eyesc'], 7, 14)
-            self.psds[ch]['eyeso_rm_alpha'] = self.remove_freq_buffer(self.psds[ch]['eyeso'], 7, 14)
-            self.psds[ch]['eyesc_slope'], self.psds[ch]['eyesc_fitline'] = regr_func(ch, lofreq, hifreq)
-            self.psds[ch]['eyeso_slope'], self.psds[ch]['eyeso_fitline'] = regr_func(ch, lofreq, hifreq)
-        print('Done.')
+            self.psds[ch]['eyesc_rm_alpha'] = self.remove_freq_buffer(self.psds[ch]['eyesc'], lofreq, hifreq)
+            self.psds[ch]['eyeso_rm_alpha'] = self.remove_freq_buffer(self.psds[ch]['eyeso'], lofreq, hifreq)
+            eyesc_slope, eyesc_fitline = regr_func(self.f_rm_alpha, self.psds[ch]['eyesc_rm_alpha'], lofreq, hifreq)
+            eyeso_slope, eyeso_fitline = regr_func(self.f_rm_alpha, self.psds[ch]['eyeso_rm_alpha'], lofreq, hifreq)
+            self.psds[ch]['eyesc_slope'], self.psds[ch]['eyesc_fitline'] = eyesc_slope, eyesc_fitline
+            self.psds[ch]['eyeso_slope'], self.psds[ch]['eyeso_fitline'] = eyeso_slope, eyeso_fitline
+
 

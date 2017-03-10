@@ -47,10 +47,11 @@ Resting-state data is exported from EMSE in an xml format. To check data integri
 - Check that segments that have been marked clean in the .evt file are sitting inside of a trial. In other words, that there are no segments of data marked as clean inside intertrial periods.
 
 # Issues with data
-The following subjects had strange .evt files that required further inspection.
+The following subjects had strange .evt files that required further inspection. These are located at:
+- data/rs/full/evt/{clean/,raw/}
 
 ### 112118266.evt
-Contains only 4 full trials: two closed and two open, in the `OCCO` sequence. It seems the event file got cut off in the middle of the 5th trial.
+Contains only 4 full trials: two closed and two open, in the `OCCO` sequence. It seems the event file got cut off in the middle of the 5th trial. Prior to processing, this trial was removed from the clean data.
 
 ### 120127123.evt
 Contains only 7 full trials. This subject is missing the very first `O` trial.
