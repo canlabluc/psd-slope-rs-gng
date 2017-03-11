@@ -131,8 +131,8 @@ def main(argv):
     missing = subjects - set(df.SUBJECT)
     if len(missing) != 0:
         for s in missing:
-            print('ERROR: Specified csv does not contain information for subject {}\n'.format(s))
-        raise Exception('Missing subject information from csv. Either remove subject file from\n'+
+            print('ERROR: Specified csv does not contain information for subject {}'.format(s))
+        raise Exception('\nMissing subject information from csv. Either remove subject file from\n'+
                         'processing pipeline or add subject information to csv file.')
 
     subj = {}
@@ -177,22 +177,21 @@ def main(argv):
     else:
         raise Exception('ERROR: Montage not recognized.')
 
+    # Build a Pandas dataframe in order to export results as a csv.
     data = {}
     data['SUBJECT'] = [subj[i].name for i in range(subj['nbsubj'])]
     data['CLASS']   = [subj[i].group for i in range(subj['nbsubj'])]
     data['AGE']     = [subj[i].age for i in range(subj['nbsubj'])]
     data['NWINDOWS_EYESC'] = [subj[i].nwins_eyesc for i in range(subj['nbsubj'])]
     data['NWINDOWS_EYESO'] = [subj[i].nwins_eyeso for i in range(subj['nbsubj'])]
-
     df = pd.DataFrame(data)
     df = df[['SUBJECT', 'CLASS', 'AGE', 'NWINDOWS_EYESC', 'NWINDOWS_EYESO']]
-
     for ch in range(len(channels)):
         df[channels[ch] + '_EYESC'] = get_subject_slopes(subj, ch, 'eyesc')
     for ch in range(len(channels)):
         df[channels[ch] + '_EYESO'] = get_subject_slopes(subj, ch, 'eyeso')
 
-    # Export results
+    # Export results to file-directory.
     filename = export_dir + 'rs-full-' + montage + '-' + fitting_func + '-' + str(fitting_lofreq) + '-' + str(fitting_hifreq) + '.csv'
     print('Saving fitted slopes at:\n', filename)
     df.to_csv(filename, index=False)

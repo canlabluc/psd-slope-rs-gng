@@ -88,14 +88,16 @@ class Subject:
                         is 512 Hz, is 2 seconds.
             noverlap:   Overlap of windows. Default is 50%.
         """
-        wins = []
+        segs = []
         for event in self.events[seg_type]:
-            event_length = event[1] - event[0]
-            if event_length >= nperwindow:
-                current_idx = 0
-                while current_idx + nperwindow <= event_length:
-                    wins.append(self.data[chan][current_idx : current_idx+nperwindow])
-                    current_idx += noverlap
+            segs.append(self.data[chan][event[0] : event[1]])
+
+        wins = []
+        for seg in segs:
+            current_idx = 0
+            while current_idx + nperwindow <= len(seg):
+                wins.append(seg[current_idx : current_idx+nperwindow])
+                current_idx += noverlap
         return wins
 
 
@@ -104,8 +106,7 @@ class Subject:
         Takes a list of data segments (each size 1xN), computes each segment's PSD,
         and averages them to get a final PSD.
         """
-        # psds = [sp.signal.periodogram(window, srate, window='hamming')[1] for window in windows]
-        psds = [sp.signal.welch(window, srate, nperseg=len(window), window='hamming')[1] for window in windows]
+        psds = [sp.signal.periodogram(w, srate, window='hamming')[1] for w in windows]
         return np.mean(psds, axis=0)
 
 
@@ -117,7 +118,7 @@ class Subject:
         return data.reshape(len(data), 1)
 
 
-    def compute_ch_psds(self, match_OA_protocol=True, manual_win_extraction=False,
+    def compute_ch_psds(self, match_OA_protocol=False, manual_win_extraction=False,
                                             nwins_upperlimit=-1, rand_wins=False):
         """ Returns subj data structure with calculated PSDs and subject information.
         Arguments:
@@ -141,11 +142,9 @@ class Subject:
 
         for ch in range(self.nbchan):
             self.psds[ch] = {}
-
             if manual_win_extraction:
                 eyesc_windows = self.get_windows(ch, 'eyesc')
                 eyeso_windows = self.get_windows(ch, 'eyeso')
-
                 # Remove windows if there's an upper-limit and windows
                 # are selected randomly.
                 if nwins_upperlimit != -1 and rand_wins:
@@ -161,22 +160,13 @@ class Subject:
                             eyeso_windows.pop(random.randrange(eyeso_windows))
                         else:
                             eyeso_windows.pop()
-
                 self.psds[ch]['eyesc'] = self.welch(eyesc_windows, 512)
                 self.psds[ch]['eyeso'] = self.welch(eyeso_windows, 512)
             else:
-                eyesc_segs = [self.data[ch][event[0] : event[1]] for event in self.events['eyesc']]
-                eyeso_segs = [self.data[ch][event[0] : event[1]] for event in self.events['eyeso']]
-                eyesc_psds = []
-                eyeso_psds = []
-                for seg in eyesc_segs:
-                    if len(seg) >= 1024:
-                        eyesc_psds.append(sp.signal.welch(seg, 512, nperseg=1024, noverlap=512, window='hamming')[1])
-                for seg in eyeso_segs:
-                    if len(seg) >= 1024:
-                        eyeso_psds.append(sp.signal.welch(seg, 512, nperseg=1024, noverlap=512, window='hamming')[1])
-                self.psds[ch]['eyesc'] = np.mean(eyesc_psds, axis=0)
-                self.psds[ch]['eyeso'] = np.mean(eyeso_psds, axis=0)
+                eyesc_windows = self.get_windows(ch, 'eyesc')
+                eyeso_windows = self.get_windows(ch, 'eyeso')
+                self.psds[ch]['eyesc'] = self.welch(eyesc_windows, s.srate)
+                self.psds[ch]['eyeso'] = self.welch(eyeso_windows, s.srate)
 
         if manual_win_extraction:
             self.nwins_eyesc = len(eyesc_windows)
@@ -217,19 +207,17 @@ class Subject:
         return model_ransac.estimator_.coef_[0] * (10**2), fit_line
 
 
-        def fit_slopes(self, regr_func_str='ransac',
-                        buffer_lofreq=7, buffer_hifreq=14,
-                        fitting_lofreq=2, fitting_hifreq=24):
+    def fit_slopes(self, regr_func_str='ransac',
+                    buffer_lofreq=7, buffer_hifreq=14,
+                    fitting_lofreq=2, fitting_hifreq=24):
         if regr_func_str == 'ransac':
             regr_func = self.ransac_slope
         elif regr_func_str == 'linreg':
             regr_func = self.linreg_slope
         for ch in range(self.nbchan):
-            self.psds[ch]['eyesc_rm_alpha'] = self.remove_freq_buffer(self.psds[ch]['eyesc'], lofreq, hifreq)
-            self.psds[ch]['eyeso_rm_alpha'] = self.remove_freq_buffer(self.psds[ch]['eyeso'], lofreq, hifreq)
-            eyesc_slope, eyesc_fitline = regr_func(self.f_rm_alpha, self.psds[ch]['eyesc_rm_alpha'], lofreq, hifreq)
-            eyeso_slope, eyeso_fitline = regr_func(self.f_rm_alpha, self.psds[ch]['eyeso_rm_alpha'], lofreq, hifreq)
+            self.psds[ch]['eyesc_rm_alpha'] = self.remove_freq_buffer(self.psds[ch]['eyesc'], buffer_lofreq, buffer_hifreq)
+            self.psds[ch]['eyeso_rm_alpha'] = self.remove_freq_buffer(self.psds[ch]['eyeso'], buffer_lofreq, buffer_hifreq)
+            eyesc_slope, eyesc_fitline = regr_func(self.f_rm_alpha, self.psds[ch]['eyesc_rm_alpha'], fitting_lofreq, fitting_hifreq)
+            eyeso_slope, eyeso_fitline = regr_func(self.f_rm_alpha, self.psds[ch]['eyeso_rm_alpha'], fitting_lofreq, fitting_hifreq)
             self.psds[ch]['eyesc_slope'], self.psds[ch]['eyesc_fitline'] = eyesc_slope, eyesc_fitline
             self.psds[ch]['eyeso_slope'], self.psds[ch]['eyeso_fitline'] = eyeso_slope, eyeso_fitline
-
-
