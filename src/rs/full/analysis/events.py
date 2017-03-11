@@ -38,6 +38,13 @@ def in_intertrial(code_latency, trials):
 
 
 def rm_intertrial_segs(df):
+    """
+    Checks to see if there are any segments sitting completely or partially
+    in the intertrial space, and trims or removes the segments.
+    Arguments:
+        df: Pandas dataframe, contains event information. Produced by running
+            scripts in preprocessing.
+    """
     SEGS_START = ['C1', 'O1']
     SEGS_STOP = ['C2', 'O2']
     TRIALS_START = ['11', '01']

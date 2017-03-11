@@ -17,13 +17,14 @@ import pandas as pd
 import scipy.io
 import scipy.signal
 from sklearn import linear_model
+from collections import OrderedDict
 
 from subject import Subject
 
 ###############################################################################
 
 def get_filelist(import_path, extension):
-    """ 
+    """
     Returns list of file paths from import_path with specified extension.
     """
     filelist = []
@@ -35,9 +36,9 @@ def get_filelist(import_path, extension):
 def get_subject_slopes(subj, ch, slope_type):
     """ Returns list of slopes for specified channel of slope_type.
     Arguments:
-        subj:       The subj data structure.
+        subj:       Dictionary of Subject objects.
         ch:         Scalar, channel for which to get list of subject slopes.
-        slope_type: String, e.g., 'eyesO_slope' or 'eyesC_slope'
+        slope_type: String, e.g., 'eyesc_slope' or 'eyeso_slope'
     """
     return [subj[i].psds[ch][slope_type + '_slope'][0] for i in range(subj['nbsubj'])]
 
@@ -45,24 +46,70 @@ def get_subject_slopes(subj, ch, slope_type):
 
 def main(argv):
 
-    ### Parameters ###
-    
-    montage = 'dmn'
-    recompute_psds = True
-    psd_buffer_lofreq = 7
-    psd_buffer_hifreq = 14
-    fitting_func = 'ransac'
-    fitting_lofreq = 2
-    fitting_hifreq = 24
-    nwins_upperlimit = -1
-    cut_recording_length = True
-    import_dir_mat = '/Users/jorge/Drive/research/_psd-slope/data/rs/full/source-dmn/MagEvtFiltCAR-mat/'
-    import_dir_evt = '/Users/jorge/Drive/research/_psd-slope/data/rs/full/evt/clean/'
-    export_dir     = '/Users/jorge/Drive/research/_psd-slope/data/runs/'
+    """
+    Parameters
+    ----------
+    montage : string
+        montage we're running spectral_slopes on. Options are:
+            'dmn': Default mode network source model.
+            'frontal': Frontal source model.
+            'dorsal': Dorsal attention source model.
+            'ventral': Ventral attention source model.
+            'sensor-level': For running the original sensor-level data.
+    psd_buffer_lofreq : float
+        lower frequency bound for the PSD buffer we exclude from fitting.
+    psd_buffer_hifreq : float
+        upper frequency bound for the PSD buffer we exclude from fitting.
+    fitting_func : string
+        function we use for fitting to the PSDs. Options are:
+            'linreg': Simple linear regression.
+            'ransac': RANSAC, a robust fitting method.
+    fitting_lofreq : float
+        upper frequency bound for the PSD fitting.
+    fitting_hifreq : float
+        lower frequency bound for the PSD fitting.
+    match_OA_protocol : bool
+        specifies whether to cut younger adult trials down by half in
+        order to make them match older adult trial lengths.
+    nwins_upperlimit : int
+        upper limit on number of windows to extract from the younger
+        adults. A value of -1 means no upper limit.
+    import_dir_mat : string
+        directory from which we import .mat files.
+    import_dir_evt : string
+        directory from which we import .evt files.
+    export_dir : string
+        directory to which we export the results .csv file.
+    """
 
-    ###
+    params = OrderedDict()
+    params['montage'] = 'dmn'
+    params['recompute_psds'] = True
+    params['psd_buffer_lofreq'] = 7
+    params['psd_buffer_hifreq'] = 14
+    params['fitting_func'] = 'ransac'
+    params['fitting_lofreq'] = 2
+    params['fitting_hifreq'] = 24
+    params['match_OA_protocol'] = -1
+    params['nwins_upperlimit'] = -1
+    params['import_dir_mat'] = 'data/rs/full/source-dmn/MagEvtFiltCAR-mat/'
+    params['import_dir_evt'] = 'data/rs/full/evt/clean/'
+    params['export_dir']     = 'data/runs/'
+
+    ###########################################################################
     
-    # If present, take in command-line arguments.
+    # Make sure we're working at the project root.
+    project_path = os.getcwd()
+    os.chdir(project_path[:project_path.find('psd-slope') + len('psd-slope')] + '/')
+
+    # Generate information about current run.
+    params['Time'] = str(datetime.datetime.now()).split()[0]
+    with open('.git/refs/heads/master', 'r') as f:
+        params['commit'] = f.read()[0:7]
+    params.move_to_end('commit', last=False)
+    params.move_to_end('Time', last=False)
+
+    # Take in command-line args, if they are present.
     try:
         opts, args = getopt.getopt(argv[1:], 'm:i:o:hc')
     except getopt.GetoptError:
@@ -77,51 +124,38 @@ def main(argv):
             print('Or, manually modify program parameters and run without command-line args.')
             sys.exit(2)
         elif opt == '-m':
-            montage = arg
+            params['montage'] = arg
         elif opt == '-i':
-            import_dir_mat = arg
+            params['import_dir_mat'] = arg
         elif opt == '-o':
-            export_dir = arg
+            params['export_dir'] = arg
         elif opt == '-c':
-            cut_recording_length = True
+            params['match_OA_protocol'] = True
 
-    # Make directory for this run and write parameters to file.
-    current_time = str(datetime.datetime.now()).split()[0]
-    export_dir_name = export_dir + '/' + current_time + '-' + montage + '/'
+    # Make a directory for this run and write parameters to terminal and file.
+    export_dir_name = params['export_dir'] + '/' + params['Time'] + '-' +\
+                                                     params['montage'] + '/'
     num = 1
     while os.path.isdir(export_dir_name):
-        export_dir_name = export_dir + '/' + current_time + '-' + montage + '-' + str(num) + '/'
+        export_dir_name = params['export_dir'] + '/' + params['Time'] + '-' +\
+                                      params['montage'] + '-' + str(num) + '/'
         num += 1
-    export_dir = export_dir_name
-    os.mkdir(export_dir)
+    params['export_dir'] = export_dir_name
+    os.mkdir(params['export_dir'])
 
-    parameters = '''
-    Time: {0}
-    montage = {1}
-    recompute_psds = {2}
-    psd_buffer_lofreq = {3}
-    psd_buffer_hifreq = {4}
-    fitting_func = {5}
-    fitting_lofreq = {6}
-    fitting_hifreq = {7}
-    nwins_upperlimit = {8}
-    cut_recording_length = {9}
-    import_dir = {10}
-    export_dir = {11}
-    '''.format(str(datetime.datetime.now()), montage, str(recompute_psds),
-               str(psd_buffer_lofreq), str(psd_buffer_hifreq), str(fitting_func),
-               str(fitting_lofreq), str(fitting_hifreq), str(nwins_upperlimit),
-               str(cut_recording_length), str(import_dir_mat), str(export_dir))
-    params = open(export_dir + 'parameters.txt', 'w')
-    params.write(parameters)
-    params.close()
-    print(parameters)
+    with open(params['export_dir'] + 'parameters.txt', 'w') as params_file:
+        print()
+        for p in params:
+            line = ' {}: {}'.format(p, str(params[p]))
+            print(line)
+            params_file.write(line)
+        print()
 
-    ### Now for the actual analysis
+    ##########################################################################
+    # Compute PSDs and fit to slopes.
 
-    # Compute per-channel PSDs for each subject.
     subj = {}
-    matfiles = get_filelist(import_dir_mat, 'mat')
+    matfiles = get_filelist(params['import_dir_mat'], 'mat')
     df = pd.read_csv('data/auxilliary/ya-oa.csv')
     df.SUBJECT = df.SUBJECT.astype(str)
     df.CLASS   = df.CLASS.astype(str)
@@ -144,26 +178,32 @@ def main(argv):
         group = df[df.SUBJECT == subj_name].CLASS.values[0]
         age   = df[df.SUBJECT == subj_name].AGE.values[0]
         sex   = df[df.SUBJECT == subj_name].SEX.values[0]
+        subj[i] = Subject(matfiles[i], params['import_dir_evt'] + subj_name + '.evt', age, group, sex)
 
-        subj[i] = Subject(matfiles[i], import_dir_evt + subj_name + '.evt', age, group, sex)
         print('Computing PSDs... ', end='')
-        subj[i].compute_ch_psds()
+        subj[i].compute_ch_psds(match_OA_protocol=params['match_OA_protocol'],
+                                nwins_upperlimit=params['nwins_upperlimit'])
         print('Done.')
 
-        # Select fitting function
-        if fitting_func == 'linreg':
-            regr = subj[i].linreg_slope
-        elif fitting_func == 'ransac':
-            regr = subj[i].ransac_slope
         print('Fitting slopes... ', end='')
-        subj[i].fit_slopes(fitting_func, 7, 14)
+        if params['fitting_func'] == 'linreg':
+            regr = subj[i].linreg_slope
+        elif params['fitting_func'] == 'ransac':
+            regr = subj[i].ransac_slope
+        subj[i].fit_slopes(params['fitting_func'], params['psd_buffer_lofreq'],
+                           params['psd_buffer_hifreq'], params['fitting_lofreq'],
+                           params['fitting_hifreq'])
         print('Done.\n')
 
-        filename = export_dir + 'subj-' + str(fitting_lofreq) + '-' + str(fitting_hifreq) + '-' + fitting_func + '.npy'
-        subj['time_computed'] = current_time # TODO
-        np.save(filename, subj)
+    filename = (params['export_dir'] + 'subj-' + str(params['fitting_lofreq']) +
+                '-' + str(params['fitting_hifreq']) + '-' + params['fitting_func'] + '.npy')
+    subj['time_computed'] = params['Time']
+    np.save(filename, subj)
 
-    # Define channels, these will form labels for our table.
+    ##########################################################################
+    # Construct Pandas dataframe and export results to .csv file.
+
+    # Define channel labels for the montage.
     if montage == 'sensor-level':
         channels = ['A01','A02','A03','A04','A05','A06','A07','A08','A09','A10','A11','A12','A13','A14','A15','A16','A17','A18','A19','A20','A21','A22','A23','A24','A25','A26','A27','A28','A29','A30','A31','A32','B01','B02','B03','B04','B05','B06','B07','B08','B09','B10','B11','B12','B13','B14','B15','B16','B17','B18','B19','B20','B21','B22','B23','B24','B25','B26','B27','B28','B29','B30','B31','B32','FRONTAL','LTEMPORAL','CENTRAL','RTEMPORAL','OCCIPITAL']
     elif montage == 'dmn':
@@ -177,7 +217,7 @@ def main(argv):
     else:
         raise Exception('ERROR: Montage not recognized.')
 
-    # Build a Pandas dataframe in order to export results as a csv.
+    # Construct Pandas dataframe with subject information and slopes.
     data = {}
     data['SUBJECT'] = [subj[i].name for i in range(subj['nbsubj'])]
     data['CLASS']   = [subj[i].group for i in range(subj['nbsubj'])]
@@ -191,8 +231,10 @@ def main(argv):
     for ch in range(len(channels)):
         df[channels[ch] + '_EYESO'] = get_subject_slopes(subj, ch, 'eyeso')
 
-    # Export results to file-directory.
-    filename = export_dir + 'rs-full-' + montage + '-' + fitting_func + '-' + str(fitting_lofreq) + '-' + str(fitting_hifreq) + '.csv'
+    # Export results to file directory.
+    filename = (params['export_dir'] + 'rs-full-' + params['montage'] + '-' +
+                params['fitting_func'] + '-' + str(params['fitting_lofreq']) +
+                '-' + str(params['fitting_hifreq']) + '.csv')
     print('Saving fitted slopes at:\n', filename)
     df.to_csv(filename, index=False)
 

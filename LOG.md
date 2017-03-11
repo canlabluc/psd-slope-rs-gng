@@ -1,7 +1,11 @@
 # log
 
+## March 11, 2017
+#### analyze results of halving YA trial length
+
+
 ## March 10, 2017
-#### refactored spectral_slopes.py to use Subject class, reimplement welch
+#### refactored spectral_slopes.py to use Subject class, reimplement welch, re-run all subjects with YA trials halved.
 
 ##### refactoring spectral_slopes.py
 Finished refactoring spectral_slopes.py to use the Subject class. New implementation was tested by running dmn source-model:
@@ -11,7 +15,7 @@ $ python src/rs/full/analysis/spectral_slopes_v2.py -m dmn -i data/rs/full/sourc
 
 Attempting to import subject 112118266 resulted in an out of bounds error while attempting to build the event hierarchy. Seems that the evt file got cut off in the middle of trial 105, which indicates the start of an eyes-closed trial. I've manually removed it from the clean evt file.
 
-###### reimplementing welch
+##### reimplementing welch
 Continuing with yesterday, I'm currently attempting to finalize the implementation of Welch's method. It's also important to be aware of the fitting that occurs (to be fair, this is with method #2, where we're taking all clean segments into sp.signal.welch and taking their average), sometimes yielding fits like this:
 ![pos_fit](docs/.data/log/2017-03-10/s1121181262_bad_fit.png)
 
@@ -22,7 +26,10 @@ Welch has been reimplemented and fixed. It looks like we'll need to run all anal
 Old refers to the PSD we were using prior to refactoring, pulled from run `2017-03-07`. New refers to the one we now use. Both are from channel 0 (the PCC source) of subject 1121181181. 
 ![old_psd](docs/.data/log/2017-03-10/s1121181181_oldnewcomparison.png)
 
-We'll have to run everything over again to see if there are still significant differences between age groups. Hopefully the old PSD was still reflecting broadband activity, and the new one simply shows it more clearly.
+**Update:** It looks like PSD calculations were only adversely affected when I restructured get_windows() on March 7. Previously, we were computing them correctly. So the above issue should not affect our findings from previous months. However, we should still see whether we should increase the fitting range in order to better capture broadband activity. (perhaps fitting in log-log space instead of semi-log space would help?)
+
+##### running all subjects again, with YA trials halved
+With spectral_slopes finally refactored and verification that the welch implementation is working correctly, I ran spectral_slopes on all subjects again. Results are located in `2017-03-10` runs.
 
 
 ## March 9, 2017
@@ -168,9 +175,9 @@ set_mat_converter('data/rs/full/original/ExclFiltCleanEvtCARClust-set/',...
 
 Then we run `spectral_slopes.py` on the new data:
 ```bash
-$ python src/rs/full/analysis/spectral_slopes.py -m source-level -i data/rs/full/original/ExclFiltCleanEvtCARClust-mat/ -o data/runs/
-$ python src/rs/full/analysis/spectral_slopes.py -m dmn          -i data/rs/full/source-dmn/MagCleanEvtFiltCAR-mat/     -o data/runs/
-$ python src/rs/full/analysis/spectral_slopes.py -m frontal      -i data/rs/full/source-frontal/MagCleanEvtFiltCAR-mat/ -o data/runs/
-$ python src/rs/full/analysis/spectral_slopes.py -m ventral      -i data/rs/full/source-ventral/MagCleanEvtFiltCAR-mat/ -o data/runs/
-$ python src/rs/full/analysis/spectral_slopes.py -m dorsal       -i data/rs/full/source-dorsal/MagCleanEvtFiltCAR-mat/  -o data/runs/
+python src/rs/full/analysis/spectral_slopes.py -m dmn          -i data/rs/full/source-dmn/MagCleanEvtFiltCAR-mat/     -o data/runs/
+python src/rs/full/analysis/spectral_slopes.py -m frontal      -i data/rs/full/source-frontal/MagCleanEvtFiltCAR-mat/ -o data/runs/
+python src/rs/full/analysis/spectral_slopes.py -m ventral      -i data/rs/full/source-ventral/MagCleanEvtFiltCAR-mat/ -o data/runs/
+python src/rs/full/analysis/spectral_slopes.py -m dorsal       -i data/rs/full/source-dorsal/MagCleanEvtFiltCAR-mat/  -o data/runs/
+python src/rs/full/analysis/spectral_slopes.py -m sensor-level -i data/rs/full/original/ExclFiltCleanEvtCARClust-mat/ -o data/runs/
 ```

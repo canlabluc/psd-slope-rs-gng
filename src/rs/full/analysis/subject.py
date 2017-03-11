@@ -165,8 +165,8 @@ class Subject:
             else:
                 eyesc_windows = self.get_windows(ch, 'eyesc')
                 eyeso_windows = self.get_windows(ch, 'eyeso')
-                self.psds[ch]['eyesc'] = self.welch(eyesc_windows, s.srate)
-                self.psds[ch]['eyeso'] = self.welch(eyeso_windows, s.srate)
+                self.psds[ch]['eyesc'] = self.welch(eyesc_windows, self.srate)
+                self.psds[ch]['eyeso'] = self.welch(eyeso_windows, self.srate)
 
         if manual_win_extraction:
             self.nwins_eyesc = len(eyesc_windows)
