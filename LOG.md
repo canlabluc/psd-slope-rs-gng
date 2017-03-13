@@ -1,5 +1,18 @@
 # log
 
+## March 13, 2017
+#### check differences in PSD between first half and second half of YA trials
+In order to see if the latter half of YA trials contain more lower-frequency data and thus caused steeper PSD slopes, I ran the YAs in two ways:
+1. Take the first half of trials (making them 30 seconds long; 0-30s).
+2. Take the second half of trials (31-60s).
+
+If we look at the average PCC PSD for both conditions, we get the following:
+![ya_PCC_comparison](docs/.data/log/2017-03-13/ya_pcc_psd_halves.png)
+
+The latter half of the trials does show increased lower frequency activity and a more jagged PSD. This might only be reflected in specific channels, however. If we take the mean of all DMN channel PSDs, we get the following:
+![ya_DMN_comparison](docs/.data/log/2017-03-13/ya_dmn_psd_halves.png)
+
+
 ## March 11, 2017
 #### further refactor spectral_slopes.py, analyze results of halving YA trial length
 
