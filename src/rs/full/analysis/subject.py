@@ -60,10 +60,19 @@ class Subject:
         self._construct_event_hierarchy()
 
 
-    def modify_trial_length(self, new_trial_length):
+    def modify_trial_length(self, lower_bound, upper_bound):
         """
         Reduces or increases trial lengths and modifies clean segment
         markers to reflect new trial lengths.
+        Arguments
+            lower_bound : float (seconds)
+                Specifies lower bound for new trial length
+            upper_bound : float (seconds)
+                Specifies upper bound for new trial length
+        For example, limiting 60-second trials down to 30-second ones
+        would be done like so:
+            >> s = Subject('1121181181.mat', '1121181181.evt')
+            >> s.modify_trial_length(0, 30)
         """
         df = self.events['df'].copy()
         for i in range(df.shape[0]):
@@ -71,7 +80,8 @@ class Subject:
                 for j in range(i+1, df.shape[0]):
                     if df.iloc[j].Type in ['02', '12']:
                         break
-                df.at[j, 'Latency'] = df.iloc[i].Latency + new_trial_length
+                df.at[j, 'Latency'] = df.iloc[i].Latency + upper_bound*512
+                df.at[i, 'Latency'] = df.iloc[i].Latency + lower_bound*512
         self.events['df'] = df.copy()
         self._update_event_hierarchy()
 
@@ -118,70 +128,35 @@ class Subject:
         return data.reshape(len(data), 1)
 
 
-    def compute_ch_psds(self, match_OA_protocol=False, manual_win_extraction=False,
-                                            nwins_upperlimit=-1, rand_wins=False):
-        """ Returns subj data structure with calculated PSDs and subject information.
-        Arguments:
-            import_path:          String, path to .mat files
-            import_path_csv:      String, path to .csv containing subject class, sex, and
-                                  age information.
-            cut_recording_length: Boolean, specifies whether to cut recordings down to 7
-                                  minutes.
-            nwins_upperlimit:     Scalar, specifies the upperlimit of windows to extract
-                                  from a given subject. A value of -1 means no upper limit.
+    def compute_ch_psds(self, nwins_upperlimit=0):
         """
-
+        Returns subj data structure with calculated PSDS and subject
+        information.
+        Arguments:
+            nwins_upperlimit : int
+                Upper limit on number of windows we use to compute the
+                PSD. Default is 0, which means no upper limit.
+        """
         self.psds = {}
         self.f = np.linspace(0, 256, 513)
         self.f = self.f.reshape(len(self.f), 1)
         self.f_rm_alpha = self.remove_freq_buffer(self.f, 7, 14)
 
-        # Cut trials down to match older adults; 30 seconds
-        if match_OA_protocol and self.name[0:3] == '112':
-            self.modify_trial_length(512 * 30)
-
         for ch in range(self.nbchan):
             self.psds[ch] = {}
-            if manual_win_extraction:
-                eyesc_windows = self.get_windows(ch, 'eyesc')
-                eyeso_windows = self.get_windows(ch, 'eyeso')
-                # Remove windows if there's an upper-limit and windows
-                # are selected randomly.
-                if nwins_upperlimit != -1 and rand_wins:
-                    while len(eyesc_windows) > nwins_upperlimit:
-                        if rand_wins:
-                            random.shuffle(eyesc_wins)
-                            eyesc_wins.pop()
-                        else:
-                            eyesc_windows.pop()
-                    while len(eyeso_windows) > nwins_upperlimit:
-                        if rand_wins:
-                            random.shuffle(eyeso_windows)
-                            eyeso_windows.pop(random.randrange(eyeso_windows))
-                        else:
-                            eyeso_windows.pop()
-                self.psds[ch]['eyesc'] = self.welch(eyesc_windows, 512)
-                self.psds[ch]['eyeso'] = self.welch(eyeso_windows, 512)
-            else:
-                eyesc_windows = self.get_windows(ch, 'eyesc')
-                eyeso_windows = self.get_windows(ch, 'eyeso')
-                self.psds[ch]['eyesc'] = self.welch(eyesc_windows, self.srate)
-                self.psds[ch]['eyeso'] = self.welch(eyeso_windows, self.srate)
+            eyesc_windows = self.get_windows(ch, 'eyesc')
+            eyeso_windows = self.get_windows(ch, 'eyeso')
+            if nwins_upperlimit:
+                while len(eyesc_windows) > nwins_upperlimit:
+                    random.shuffle(eyesc_windows)
+                    random.shuffle(eyeso_windows)
+                    eyesc_windows.pop()
+                    eyeso_windows.pop()
+            self.psds[ch]['eyesc'] = self.welch(eyesc_windows, self.srate)
+            self.psds[ch]['eyeso'] = self.welch(eyeso_windows, self.srate)
 
-        if manual_win_extraction:
-            self.nwins_eyesc = len(eyesc_windows)
-            self.nwins_eyeso = len(eyeso_windows)
-        else:
-            self.nwins_eyesc = 0
-            self.nwins_eyeso = 0
-            for event in self.events['eyesc']:
-                event_length = event[1] - event[0]
-                if event_length >= 1024:
-                    self.nwins_eyesc += (event_length//512) - 1
-            for event in self.events['eyeso']:
-                event_length = event[1] - event[0]
-                if event_length >= 1024:
-                    self.nwins_eyeso += (event_length//512) - 1
+        self.nwins_eyesc = len(eyesc_windows)
+        self.nwins_eyeso = len(eyeso_windows)
         self.data = [] # Clear it from memory since it's no longer needed.
 
 

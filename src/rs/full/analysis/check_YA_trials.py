@@ -1,8 +1,7 @@
 #!/usr/local/bin/python3
 """
-Computes PSDs and fits line to specified frequency range in PSD for
-BESA source models.
-Change parameters below in order to run different datasets.
+Runs the spectral slopes analysis on the younger adults in order to
+examine how the PSD changes in the latter 30 seconds of the YA trials.
 """
 
 import os
@@ -46,42 +45,6 @@ def get_subject_slopes(subj, ch, slope_type):
 
 def main(argv):
 
-    """
-    Parameters
-    ----------
-    montage : string
-        montage we're running spectral_slopes on. Options are:
-            'dmn': Default mode network source model.
-            'frontal': Frontal source model.
-            'dorsal': Dorsal attention source model.
-            'ventral': Ventral attention source model.
-            'sensor-level': For running the original sensor-level data.
-    psd_buffer_lofreq : float
-        lower frequency bound for the PSD buffer we exclude from fitting.
-    psd_buffer_hifreq : float
-        upper frequency bound for the PSD buffer we exclude from fitting.
-    fitting_func : string
-        function we use for fitting to the PSDs. Options are:
-            'linreg': Simple linear regression.
-            'ransac': RANSAC, a robust fitting method.
-    fitting_lofreq : float
-        upper frequency bound for the PSD fitting.
-    fitting_hifreq : float
-        lower frequency bound for the PSD fitting.
-    match_OA_protocol : bool
-        specifies whether to cut younger adult trials down by half in
-        order to make them match older adult trial lengths.
-    nwins_upperlimit : int
-        upper limit on number of windows to extract from the younger
-        adults. A value of 0 means no upper limit.
-    import_dir_mat : string
-        directory from which we import .mat files.
-    import_dir_evt : string
-        directory from which we import .evt files.
-    export_dir : string
-        directory to which we export the results .csv file.
-    """
-
     params = OrderedDict()
     params['montage'] = 'dmn'
     params['recompute_psds'] = True
@@ -111,7 +74,7 @@ def main(argv):
 
     # Take in command-line args, if they are present.
     try:
-        opts, args = getopt.getopt(argv[1:], 'm:i:o:hc')
+        opts, args = getopt.getopt(argv[1:], 'm:i:o:hc:')
     except getopt.GetoptError:
         print('Error: Bad input. To run:\n')
         print('\tspectral_slopes.py -m <montage> -i <import_dir> -o <export_dir>\n')
@@ -130,7 +93,7 @@ def main(argv):
         elif opt == '-o':
             params['export_dir'] = arg
         elif opt == '-c':
-            params['match_OA_protocol'] = True
+            params['trial_protocol'] = arg
 
     # Make a directory for this run and write parameters to terminal and file.
     export_dir_name = params['export_dir'] + '/' + params['Time'] + '-' +\
@@ -156,6 +119,10 @@ def main(argv):
 
     subj = {}
     matfiles = get_filelist(params['import_dir_mat'], 'mat')
+    # Get rid of older adults.
+    for f in matfiles:
+        if f.split('/')[-1][0:3] == '120':
+            matfiles.remove(f)
     df = pd.read_csv('data/auxilliary/ya-oa.csv')
     df.SUBJECT = df.SUBJECT.astype(str)
     df.CLASS   = df.CLASS.astype(str)
@@ -181,8 +148,10 @@ def main(argv):
         subj[i] = Subject(matfiles[i], params['import_dir_evt'] + subj_name + '.evt', group, age, sex)
 
         print('Computing PSDs... ', end='')
-        if params['trial_protocol'] == 'match_OA' and group == 'DANE':
+        if params['trial_protocol'] == 'match_OA':
             subj[i].modify_trial_length(0, 30)
+        elif params['trial_protocol'] == 'latter_half':
+            subj[i].modify_trial_length(30, 60)
         subj[i].compute_ch_psds(nwins_upperlimit=params['nwins_upperlimit'])
         print('Done.')
 
