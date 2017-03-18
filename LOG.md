@@ -1,8 +1,23 @@
 # log
 
+## March 18, 2017
+#### construct topoplots using p-values and zscores
+To get a more visual idea of which areas are statistically significant, I used the topoplot function to construct topographic maps of either p-values or z-score differences for both the rs and gng data.
+
+##### resting-state data; sensor-level ttests
+This is the resulting topographic map of p-values when running t-tests between OAs and YAs on eyesc channels:
+![rs_pvals_topo](docs/.data/log/2017-03-18/rs-full-pvalues-topo-eyesc.png)
+
+##### go-nogo data; sensor-level ttests
+And for the GNG data, Bob ran z-scores on each subjects' eyesc slopes. These were averaged into a YA average and OA average for each channel, and then we took the difference between them. The difference between mean Z-scores is plotted below:
+
+![gng_zscores_diffs_topo](docs/.data/log/2017-03-18/gng-zscores-diffs-eyesc-cbrar.png)
+
+
 ## March 13, 2017
 #### check differences in PSD between first half and second half of YA trials
 In order to see if the latter half of YA trials contain more lower-frequency data and thus caused steeper PSD slopes, I ran the YAs in two ways:
+
 1. Take the first half of trials (making them 30 seconds long; 0-30s).
 2. Take the second half of trials (31-60s).
 

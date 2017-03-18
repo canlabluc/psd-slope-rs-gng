@@ -88,16 +88,16 @@ def main(argv):
     params['psd_buffer_lofreq'] = 7
     params['psd_buffer_hifreq'] = 14
     params['fitting_func'] = 'ransac'
-    params['fitting_lofreq'] = 2
-    params['fitting_hifreq'] = 24
+    params['fitting_lofreq'] = 14
+    params['fitting_hifreq'] = 34
     params['trial_protocol'] = 'match_OA'
     params['nwins_upperlimit'] = 0
-    params['import_dir_mat'] = 'data/rs/full/source-dmn/MagEvtFiltCAR-mat/'
+    params['import_dir_mat'] = 'data/rs/full/source-dmn/MagCleanEvtFiltCAR-mat/'
     params['import_dir_evt'] = 'data/rs/full/evt/clean/'
     params['export_dir']     = 'data/runs/'
 
     ###########################################################################
-    
+
     # Make sure we're working at the project root.
     project_path = os.getcwd()
     os.chdir(project_path[:project_path.find('psd-slope') + len('psd-slope')] + '/')
@@ -111,7 +111,7 @@ def main(argv):
 
     # Take in command-line args, if they are present.
     try:
-        opts, args = getopt.getopt(argv[1:], 'm:i:o:hc')
+        opts, args = getopt.getopt(argv[1:], 'm:i:o:hp:')
     except getopt.GetoptError:
         print('Error: Bad input. To run:\n')
         print('\tspectral_slopes.py -m <montage> -i <import_dir> -o <export_dir>\n')
@@ -129,8 +129,8 @@ def main(argv):
             params['import_dir_mat'] = arg
         elif opt == '-o':
             params['export_dir'] = arg
-        elif opt == '-c':
-            params['match_OA_protocol'] = True
+        elif opt == '-p':
+            params['trial_protocol'] = arg
 
     # Make a directory for this run and write parameters to terminal and file.
     export_dir_name = params['export_dir'] + '/' + params['Time'] + '-' +\
@@ -172,7 +172,7 @@ def main(argv):
     subj = {}
     subj['nbsubj'] = len(matfiles)
     for i in range(len(matfiles)):
-        
+
         subj_name = matfiles[i].split('/')[-1][:-4]
         print('Processing: {}'.format(subj_name))
         group = df[df.SUBJECT == subj_name].CLASS.values[0]
