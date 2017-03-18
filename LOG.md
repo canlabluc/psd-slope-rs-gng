@@ -11,7 +11,7 @@ This is the resulting topographic map of p-values when running t-tests between O
 ##### go-nogo data; sensor-level ttests
 And for the GNG data, Bob ran z-scores on each subjects' eyesc slopes. These were averaged into a YA average and OA average for each channel, and then we took the difference between them. The difference between mean Z-scores is plotted below:
 
-![gng_zscores_diffs_topo](docs/.data/log/2017-03-18/gng-zscores-diffs-eyesc-cbrar.png)
+![gng_zscores_diffs_topo](docs/.data/log/2017-03-18/gng-zscores-diffs-eyesc-cbar.png)
 
 
 ## March 13, 2017
