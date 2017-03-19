@@ -4,14 +4,18 @@
 #### construct topoplots using p-values and zscores
 To get a more visual idea of which areas are statistically significant, I used the topoplot function to construct topographic maps of either p-values or z-score differences for both the rs and gng data.
 
+Topographic maps were produced using the `generate_topoplots.m` in the CAN Lab toolbox, which uses EEGLAB's `topoplot` function.
+
 ##### resting-state data; sensor-level ttests
 This is the resulting topographic map of p-values when running t-tests between OAs and YAs on eyesc channels:
 ![rs_pvals_topo](docs/.data/log/2017-03-18/rs-full-pvalues-topo-eyesc.png)
 
+And the z-score differences between OAs and YAs:
+![rs_zscores_topo](docs/.data/log/2017-03-18/rs-full-zscores-diffs-eyesc.png)
+
 ##### go-nogo data; sensor-level ttests
 And for the GNG data, Bob ran z-scores on each subjects' eyesc slopes. These were averaged into a YA average and OA average for each channel, and then we took the difference between them. The difference between mean Z-scores is plotted below:
-
-![gng_zscores_diffs_topo](docs/.data/log/2017-03-18/gng-zscores-diffs-eyesc-cbar.png)
+![gng_zscores_topo](docs/.data/log/2017-03-18/gng-zscores-diffs-eyesc.png)
 
 
 ## March 13, 2017
