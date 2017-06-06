@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3
 """
 Imports EMSE-exported .evt files and exports them as
 a pandas dataframe.

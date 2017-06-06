@@ -20,11 +20,12 @@ Tmu             Code    TriNo   Comnt
 
 Where:
 - Tmu: Event time in microseconds
-- Code: BESA output, 11 means blink
-- TriNo: Trigger Number. These are our port codes.
+- Code: BESA output, from off-line processing.
+- TriNo: Trigger Number. These are our port codes, added to the recording during the task.
+- Comnt: Relevant event comment. Not really necessary for us to consider.
 
 # Go-NoGo
-This is the first set that we'll put through. Relevant trigger numbers and BESA codes are:
+Relevant trigger numbers and BESA codes are:
 ```
 TrigNo
 21 - Go prompt
@@ -32,7 +33,9 @@ TrigNo
 11 - Fixation
 1  - Response (but BESA messed this up)
 
-Code
+Code (wiki.besa.de/index.php?title=Event_File_Format)
 11 - Blinks
+21 - Artifact start
+22 - Artifact stop
 ```
 

@@ -18,8 +18,6 @@ class Subject:
         self.srate  = int(np.squeeze(datafile['srate']))
         self.data   = np.squeeze(datafile['data'])
         self.nbchan = len(self.data)
-        datafile['chans'] = np.squeeze(datafile['chans'])
-        self.chans  = [datafile['chans'][i][0] for i in range(len(datafile['chans']))]
         self.events = {}
         self.events['df'] = pd.read_csv(importpath_evt, sep='\t')
         self._construct_event_hierarchy()
@@ -71,7 +69,6 @@ class Subject:
                 Specifies lower bound for new trial length
             upper_bound : float (seconds)
                 Specifies upper bound for new trial length
-
         For example, limiting 60-second trials down to 30-second ones
         would be done like so:
             >> s = Subject('1121181181.mat', '1121181181.evt')

@@ -18,14 +18,24 @@ class Subject:
         self.srate  = int(np.squeeze(datafile['srate']))
         self.data   = np.squeeze(datafile['data'])
         self.nbchan = len(self.data)
-        datafile['chans'] = np.squeeze(datafile['chans'])
-        self.chans  = [datafile['chans'][i][0] for i in range(len(datafile['chans']))]
         self.events = {}
         self.events['df'] = pd.read_csv(importpath_evt, sep='\t')
         self._construct_event_hierarchy()
 
 
-    def _construct_event_hierarchy(self):
+    def _construct_event_hierarchy(self, clean_space='all'):
+        """
+        Constructs trial hierarchy.
+        1. Based on the value of clean_space, construct trial hierarchy.
+        2. If 'all':
+            take entire intertrial space
+        """
+
+
+
+
+
+
         self.events['df'].Type = self.events['df'].Type.map(
             lambda x: x[0:2][::-1] if len(x) == 3 else x
         )
@@ -71,7 +81,6 @@ class Subject:
                 Specifies lower bound for new trial length
             upper_bound : float (seconds)
                 Specifies upper bound for new trial length
-
         For example, limiting 60-second trials down to 30-second ones
         would be done like so:
             >> s = Subject('1121181181.mat', '1121181181.evt')
@@ -89,14 +98,12 @@ class Subject:
         self._update_event_hierarchy()
 
 
-    def get_windows(self, chan, seg_type, nperwindow=512*2, noverlap=512):
+    def get_windows(self, chan, nperwindow=512*2, noverlap=512):
         """ Grabs windows of data of size nperwindow with overlap noverlap.
         TODO: Update. This is technically not a correct implementation of Welch's method,
         but it works if noverlap is 50 percent of the window length.
         Arguments
             chan:       Integer, channel number from which to extract windows.
-            seg_type:   String, specifies what segments to use. Possible options are
-                        'C' or 'O'.
             nperwindow: Time-points to use per window. Default value, provided sampling rate
                         is 512 Hz, is 2 seconds.
             noverlap:   Overlap of windows. Default is 50%.
@@ -147,8 +154,7 @@ class Subject:
 
         for ch in range(self.nbchan):
             self.psds[ch] = {}
-            eyesc_windows = self.get_windows(ch, 'eyesc')
-            eyeso_windows = self.get_windows(ch, 'eyeso')
+            windows = self.get_windows(ch)
             if nwins_upperlimit:
                 while len(eyesc_windows) > nwins_upperlimit:
                     random.shuffle(eyesc_windows)
