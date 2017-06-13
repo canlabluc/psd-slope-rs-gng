@@ -1,5 +1,5 @@
 # PSD Slopes: Resting state, Go-NoGo data
-This project organizes efforts to compute the differences in PSD slope between aMCIs, SAs, and their controls, for both task-related (Go-NoGo, referred to as `gng`) and resting-state data (referred to as `rs`). PSDs are computed at both the sensor and source level (source modeling is done through BESA).
+This project organizes efforts to compute the differences in power spectral density (PSD) slope between aMCIs, SAs, and their controls, for both task-related (Go-NoGo, referred to as `gng`) and resting-state data (referred to as `rs`). PSD slope has previously been identified as a proxy for the measurement of neural noise by [Voytek and colleagues](http://www.jneurosci.org/content/35/38/13257). The slope of  PSDs are computed at both the sensor and source level (source modeling is done through BESA).
 
 For instructions on running a specific analysis, see **docs**.
 
@@ -49,4 +49,5 @@ The project is organized into a few different folders:
 ```
 
 ## running an analysis
-To estimate neural noise on a set of participants, we need to first preprocess the EEG and corresponding .evt files. Preprocessing EEG occurs in MATLAB, through one of the `cl_preprocessing_` scripts. For example, if we want to run the neural noise analysis on resting-state sensor-level data, we'd open up MATLAB, 
+For instructions on estimating neural noise on a set of participants during resting-state, see `docs/Resting state pipeline.md`. For the Go/No-Go task, see `docs/Go-NoGo pipeline.md`.
+

@@ -5,7 +5,11 @@ This file specifies the pipeline utilized to process and calculate the neural no
 ## required files
 - Comma-separated values file containing subject information.
 - Full-length EEG recordings in the form of EMSE-exported .cnt files.
-- Corresponding event files marking out clean segments, also exported from EMSE.
+- Corresponding event files marking out clean segments, also exported from EMSE with the .evt file extension.
+
+An example of what the .csv file should look like:
+
+![csv file](.media/csv_file.png)
 
 # steps
 
@@ -13,7 +17,7 @@ This file specifies the pipeline utilized to process and calculate the neural no
 
 ![folder structure](.media/folder_structure.png)
 
-Place .cnt files in `raw-cnt/`, and the .evt files in `raw-evt/`. `clean-evt/` is for holding the processed .evt files, and `ExclFiltCARClust-set/` as well as `ExclFiltCARClust-mat/` is for holding the processed EEG files. We create two because Python only reads files of type `.mat`, whereas EEGLAB stores EEG files as `.set`. 'ExclFiltCARClust' specifies that the folder holds EEG data which has had certain channels excluded, had a bandpass filter applied, re-referenced to the common average (CAR), and computed several channel clusters.
+Place .cnt files in `raw-cnt/`, and the .evt files in `raw-evt/`. `clean-evt/` is for holding the processed .evt files, and `ExclFiltCARClust-set/` as well as `ExclFiltCARClust-mat/` is for holding the processed EEG files. We create two because Python only reads files of type `.mat`, whereas EEGLAB stores EEG files as `.set`. 'ExclFiltCARClust' specifies that the folder holds EEG data which has had certain channels excluded, had a bandpass filter applied, re-referenced to the common average (CAR), and computed several channel clusters. `ya-oa.csv` is the csv file containing subject information.
 
 **Open up MATLAB, and make sure that CAN Lab's EEGLAB plugin is available.** If you've not downloaded CAN Lab's EEGLAB repository yet, it is available [here](https://github.com/canlabluc/EEGLAB).
 

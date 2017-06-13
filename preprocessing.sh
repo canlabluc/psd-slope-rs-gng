@@ -1,7 +1,8 @@
 #!/bin/bash
-# Handles preprocessing of event-related .evt files
+# Handles preprocessing of resting state and Go-NoGo .evt files.
+# To use, modify the three variables below to appropriate values.
 
-preprocessing="rs"  # Options: rs for resting state, gng for Go-NoGo
+preprocessing="gng"  # Options: rs for resting state, gng for Go-NoGo
 raw_evt_files="data/raw-evt/"
 clean_evt_files="data/clean-evt/"
 

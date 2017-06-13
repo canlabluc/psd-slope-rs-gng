@@ -50,7 +50,6 @@ def get_subject_slopes(subj, ch, slope_type):
 ###############################################################################
 
 def main(argv):
-
     """
     Parameters : Change these before running.
     ----------
@@ -108,10 +107,11 @@ def main(argv):
     params['psd_buffer_lofreq'] = 7
     params['psd_buffer_hifreq'] = 14
     params['fitting_func']      = 'ransac'
-    params['fitting_lofreq']    = 14
-    params['fitting_hifreq']    = 34
+    params['fitting_lofreq']    = 2
+    params['fitting_hifreq']    = 24
     params['trial_protocol']    = 'match_OA'
     params['nwins_upperlimit']  = 0
+    params['import_path_csv']   = 'data/auxilliary/ya-oa.csv'
     params['import_dir_mat']    = 'data/rs/full/source-dmn/MagCleanEvtFiltCAR-mat/'
     params['import_dir_evt']    = 'data/rs/full/evt/clean/'
     params['export_dir']        = 'data/runs/'
@@ -134,13 +134,13 @@ def main(argv):
         opts, args = getopt.getopt(argv[1:], 'm:i:o:hp:')
     except getopt.GetoptError:
         print('Error: Bad input. To run:\n')
-        print('\tspectral_slopes.py -m <montage> -i <import_dir> -o <export_dir>\n')
+        print('\tspectral_slopes.py -m <montage> -i <import_dir> -o <export_dir> -p <trial_protocol>\n')
         print('Or, manually modify program parameters and run without command-line args.')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
             print('Help:\n')
-            print('\tspectral_slopes.py -m <montage> -i <import_dir> -o <export_dir>\n')
+            print('\tspectral_slopes.py -m <montage> -i <import_dir> -o <export_dir> -p <trial_protocol>\n')
             print('Or, manually modify program parameters and run without command-line args.')
             sys.exit(2)
         elif opt == '-m':
@@ -177,7 +177,7 @@ def main(argv):
 
     # Import subject class and age from auxilliary csv.
     matfiles = get_filelist(params['import_dir_mat'], 'mat')
-    df = pd.read_csv('data/auxilliary/ya-oa.csv')
+    df = pd.read_csv(params['import_path_csv'])
     df.SUBJECT = df.SUBJECT.astype(str)
     df.CLASS   = df.CLASS.astype(str)
     df.AGE     = df.AGE.astype(int)
@@ -232,20 +232,6 @@ def main(argv):
 
     ##########################################################################
     # Construct Pandas dataframe and export results to .csv file.
-
-    # Define channel labels for the montage.
-    # if params['montage'] == 'sensor-level':
-    #     channels = ['A01','A02','A03','A04','A05','A06','A07','A08','A09','A10','A11','A12','A13','A14','A15','A16','A17','A18','A19','A20','A21','A22','A23','A24','A25','A26','A27','A28','A29','A30','A31','A32','B01','B02','B03','B04','B05','B06','B07','B08','B09','B10','B11','B12','B13','B14','B15','B16','B17','B18','B19','B20','B21','B22','B23','B24','B25','B26','B27','B28','B29','B30','B31','B32','FRONTAL','LTEMPORAL','CENTRAL','RTEMPORAL','OCCIPITAL']
-    # elif params['montage'] == 'dmn':
-    #     channels = ['PCC','PCCr','PCCv','PCCh','mPFC','mPFCr','mPFCv','mPFCh','LAG','LAGr','LAGv','LAGh','RAG','RAGr','RAGv','RAGh','LLatT','LLatTe1','LLatTe2','LLatTe3','RLatT','RLatTe1','RLatTe2','RLatTe3','Noise1L','Noise1L1','Noise1L2','Noise1L3','Noise1R','Noise1R1','Noise1R2','Noise1R3','Noise2L','Noise2L1','Noise2L2','Noise2L3','Noise2R','Noise2R1','Noise2R2','Noise2R3','Noise1M','Noise1M1','Noise1M2','Noise1M3','Noise2M','Noise2M1','Noise2M2','Noise2M3']
-    # elif params['montage'] == 'frontal':
-    #     channels = ['LdlPFC','LdlPFC1','LdlPFC2','LdlPFC3','RdlPFC','RdlPFC1','RdlPFC2','RdlPFC3','LFRont','LFront1','LFront2','LFront3','RFront','RFront1','RFront2','RFront3','LIPL','LIPLr','LIPLv','LIPLh','RIPL','RIPLr','RIPLv','RIPLh','LIPS','LIPSr','LIPSv','LIPSh','RIPS','RIPSr','RIPSv','RIPSh','Noise1L','Noise1L1','Noise1L2','Noise1L3','Noise1R','Noise1R1','Noise1R2','Noise1R3','Noise2L','Noise2L1','Noise2L2','Noise2L3','Noise2R','Noise2R1','Noise2R2','Noise2R3','NoiseF','NoiseF1','NoiseF2','NoiseF3']
-    # elif params['montage'] == 'dorsal':
-    #     channels = ['LFEF','LFEFr','LFEFv','LFEFh','RFEF','RFEFr','RFEFv','RFEFh','LaIPS','LaIPSr','LaIPSv','LaIPSh','RaIPS','RaIPSr','RaIPSv','RaIPSh','LpIPS','LpIPSr','LpIPSv','LpIPSh','RpIPS','RpIPSr','RpIPSv','RpIPSh','Noise1L','Noise1L1','Noise1L2','Noise1L3','Noise1R','Noise1R1','Noise1R2','Noise1R3','Noise2L','Noise2L1','Noise2L2','Noise2L3','Noise2R','Noise2R1','Noise2R2','Noise2R3','Noise3L','Noise3L1','Noise3L2','Noise3L3','Noise4R','Noise4R1','Noise4R2','Noise4R3']
-    # elif params['montage'] == 'ventral':
-    #     channels = ['LIFG','LIFGr','LIFGv','LIFGh','RIFG','RIFGr','RIFGv','RIFGh','LMFG','LMFGr','LMFGv','LMFGh','RMFG','RMFGr','RMFGv','RMFGh','LTPJ','LTPJr','LTPJv','LTPJh','RTPJ','RTPJr','RTPJv','RTPJh','LSTG','LSTGr','LSTGv','LSTGh','RSTG','RSTGr','RSTGv','RSTGh','NoiseL','NoiseL1','NoiseL2','NoiseL3','NoiseR','NoiseR1','NoiseR2','NoiseR3','NoiseF','NoiseF1','NoiseF2','NoiseF3','Noise','Noise1','Noise2','Noise3']
-    # else:
-    #     raise Exception('ERROR: Montage not recognized.')
 
     # Construct Pandas dataframe with subject information and slopes.
     data = {}

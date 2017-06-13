@@ -45,9 +45,8 @@ def get_subject_slopes(subj, ch, slope_type):
 ###############################################################################
 
 def main(argv):
-
     """
-    Parameters
+    Parameters : Change these before running.
     ----------
     montage : string
         montage we're running spectral_slopes on. Options are:
@@ -56,41 +55,53 @@ def main(argv):
             'dorsal': Dorsal attention source model.
             'ventral': Ventral attention source model.
             'sensor-level': For running the original sensor-level data.
+
     psd_buffer_lofreq : float
         lower frequency bound for the PSD buffer we exclude from fitting.
+
     psd_buffer_hifreq : float
         upper frequency bound for the PSD buffer we exclude from fitting.
+
     fitting_func : string
         function we use for fitting to the PSDs. Options are:
             'linreg': Simple linear regression.
             'ransac': RANSAC, a robust fitting method.
+
     fitting_lofreq : float
         upper frequency bound for the PSD fitting.
+
     fitting_hifreq : float
         lower frequency bound for the PSD fitting.
-    match_OA_protocol : bool
-        specifies whether to cut younger adult trials down by half in
-        order to make them match older adult trial lengths.
+
     nwins_upperlimit : int
         upper limit on number of windows to extract from the younger
         adults. A value of 0 means no upper limit.
+
+    protocol : string
+        specifies
+        specifies whether to cut younger adult trials down by half in
+        order to make them match older adult trial lengths.
+
     import_dir_mat : string
         directory from which we import .mat files.
+
     import_dir_evt : string
         directory from which we import .evt files.
+
     export_dir : string
         directory to which we export the results .csv file.
     """
 
     params = OrderedDict()
-    params['recompute_psds'] = True
+    params['recompute_psds']    = True
     params['psd_buffer_lofreq'] = 7
     params['psd_buffer_hifreq'] = 14
-    params['fitting_func'] = 'ransac'
+    params['fitting_func']      = 'ransac'
     params['fitting_lofreq'] = 14
     params['fitting_hifreq'] = 34
     params['nwins_upperlimit'] = 0
     params['protocol'] = 'all_clean' # 'all_clean_space', 'correct_go_trials', 'correct_nogo_trials',
+    params['import_path_csv'] = 'data/auxilliary/ya-oa.csv'
     params['import_dir_mat'] = 'data/gng/ExclFiltCARClust-mat/'
     params['import_dir_evt'] = 'data/gng/evt/clean/'
     params['export_dir']     = 'data/runs/'
@@ -151,7 +162,7 @@ def main(argv):
 
     subj = {}
     matfiles = get_filelist(params['import_dir_mat'], 'mat')
-    df = pd.read_csv('data/auxilliary/ya-oa.csv')
+    df = pd.read_csv(params['import_path_csv'])
     df.SUBJECT = df.SUBJECT.astype(str)
     df.CLASS   = df.CLASS.astype(str)
     df.AGE     = df.AGE.astype(int)
@@ -178,8 +189,17 @@ def main(argv):
         subj[i] = Subject(matfiles[i], params['import_dir_evt'] + subj_name + '.evt', group, age, sex)
 
         #######################################
-        # Compute PSDs 
+        # Compute PSDs
+        
+        if params['protocol'] == 'correct_go_trials':
+            
+
+
+
+
+
         print('Computing PSDs... ', end='')
+        # TODO
         if params['protocol'] == 'correct_go_trials':
             subj[i].modify_trial_heirarchy() # Event-file reordering should occur inside of the Subject object.
         elif params['protocol'] == 'correct_nogo_trials':
@@ -206,9 +226,6 @@ def main(argv):
 
     ##########################################################################
     # Construct Pandas dataframe and export results to .csv file.
-
-    # Define channel labels for the montage.
-    channels = ['A01','A02','A03','A04','A05','A06','A07','A08','A09','A10','A11','A12','A13','A14','A15','A16','A17','A18','A19','A20','A21','A22','A23','A24','A25','A26','A27','A28','A29','A30','A31','A32','B01','B02','B03','B04','B05','B06','B07','B08','B09','B10','B11','B12','B13','B14','B15','B16','B17','B18','B19','B20','B21','B22','B23','B24','B25','B26','B27','B28','B29','B30','B31','B32','FRONTAL','LTEMPORAL','CENTRAL','RTEMPORAL','OCCIPITAL']
 
     # Construct Pandas dataframe with subject information and slopes.
     data = {}
