@@ -190,9 +190,9 @@ def main(argv):
 
         #######################################
         # Compute PSDs
-        
+
         if params['protocol'] == 'correct_go_trials':
-            
+
 
 
 
