@@ -160,7 +160,20 @@ def print_seg_code_information(df, fname, i, trials, error_type):
 
 ################################################################################
 
+
 def rm_irrelevant_xml(import_path, export_path):
+    """
+    Removes unneeded xml tags from EMSE .evt files.
+
+    Parameters
+    ----------
+    import_path : str
+        Absolute path to EMSE-exported .evt files.
+
+    export_path : str
+        Absolute path to directory in which to save cleaned up EMSE
+        .evt files.
+    """
     files = get_filelist(import_path, 'evt')
     for file in files:
         lines = open(file, 'r').readlines()
@@ -177,7 +190,24 @@ def rm_irrelevant_xml(import_path, export_path):
         new = open(export_path + file.split('/')[-1], 'w')
         new.writelines(lines)
 
-def transform_data_to_df(import_path, export_path):
+
+def transform_xml_to_df(import_path, export_path):
+    """
+    Transforms EMSE .evt files from xml to tab-separated Pandas
+    dataframes. Note that input to these should be cleaned up
+    with remove_irrelevant_xml.
+
+    Parameters
+    ----------
+    import_path : str
+        Absolute path to EMSE-exported .evt files in xml format,
+        cleaned through remove_irrelevant_xml.
+
+    export_path : str
+        Absolute path to directory in which to save tab-separated
+        Pandas dataframe .evt files.
+    """
+
     evt_files = get_filelist(import_path, 'evt')
     for i in range(len(evt_files)):
         events_dict = get_event_file(evt_files[i], include_clean_segs=True)
@@ -270,7 +300,8 @@ def rm_intertrial_segs(import_path, export_path):
 
 ################################################################################
 
+
 rm_irrelevant_xml(import_path, export_path)
-transform_data_to_df(export_path, export_path)
-rm_entire_trial_segs(export_path, export_path)
-rm_intertrial_segs(export_path, export_path)
+transform_xml_to_df(export_path, export_path)
+# rm_entire_trial_segs(export_path, export_path)
+# rm_intertrial_segs(export_path, export_path)
