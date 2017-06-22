@@ -12,42 +12,13 @@ The project is organized into a few different folders:
     - **runs:** Separate, time-stamped analyses which result from running analyses located in `src` are stored here.
 - **docs** contains the steps and protocols for each analysis.
 - **figures** contains figures produced.
-- **papers** contains relevant papers.
 - **results** contains final figures and results.
 - **src** organizes project analysis and preprocessing files into two main directories:
     - **gng:** Contains source files for the Go-NoGo task.
-    - **rs:** Contains source files for the resting-state data, further subdivided into 20-second analyses and full recording analyses, and **notebooks,** which contains Jupyter notebooks for exploratory analysis.
-- **work** contains Jupyter and Python files for exploratory analysis.
-```
-.
-├── data
-│   ├── auxilliary
-│   ├── gng
-│   ├── rs
-│   │   ├── 20s
-│   │   └── full
-│   │       ├── evt
-│   │       ├── original
-│   │       ├── source-dmn
-│   │       ├── source-dorsal
-│   │       ├── source-frontal
-│   │       └── source-ventral
-│   └── runs
-├── docs
-├── figures
-├── papers
-├── results
-├── src
-│   ├── gng
-│   └── rs
-│       ├── 20s
-│       ├── full
-│       │   ├── analysis
-│       │   └── preprocessing
-│       └── notebooks
-└── work
-```
+    - **rs:** Contains source files for the resting-state data, further subdivided into 20-second analyses and full recording analyses.
 
 ## running an analysis
-For instructions on estimating neural noise on a set of participants during resting-state, see `docs/Resting state pipeline.md`. For the Go/No-Go task, see `docs/Go-NoGo pipeline.md`.
+Instructions on estimating neural noise on a set during resting state are located in the docs:
+- `docs/Resting state pipelind.md`: For estimating neural noise on resting state data.
+- `docs/Go-NoGo pipeline.md`: For estimating neural noise on Go-NoGo data.
 

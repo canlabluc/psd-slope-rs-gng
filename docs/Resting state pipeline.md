@@ -4,8 +4,8 @@ This file specifies the pipeline utilized to process and calculate the neural no
 
 ## required files
 - Comma-separated values file containing subject information.
-- Full-length EEG recordings in the form of EMSE-exported .cnt files.
-- Corresponding event files marking out clean segments, also exported from EMSE with the .evt file extension.
+- Full-length EEG recordings (with .cnt or .bdf file extension).
+- Corresponding event files marking out clean segments, exported from EMSE with the .evt file extension.
 
 An example of what the .csv file should look like:
 
