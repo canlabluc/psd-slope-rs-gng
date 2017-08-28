@@ -1,5 +1,9 @@
 # log
 
+## August 27, 2017
+#### general clean up of rs pipeline
+Cleaned up the resting state pipeline by adding a top-level function called main.py which controls preprocessing of .evt files and running the spectral_slopes.py analysis, so that users no longer have to modify more than a single file. Plus, it's python, so it will be easy to copy it over to a Jupyter notebook, which makes cross-platform running frictionless.
+
 ## June 5, 2017
 #### resting-state protocol in docs/, better docs in rs/.../spectral_slopes.py
 Wrote up the protocol for running the neural noise analysis on resting-state data. It's saved in `docs/Resting state pipeline.md`. Also, comments were added and better organized in `spectral_slopes.py`.

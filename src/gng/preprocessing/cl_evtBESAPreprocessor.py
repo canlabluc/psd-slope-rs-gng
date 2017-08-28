@@ -34,6 +34,7 @@ import pandas as pd
 
 import_path = sys.argv[1]
 export_path = sys.argv[2]
+clean       = sys.argv[3]
 
 print(import_path)
 print(export_path)
@@ -54,7 +55,7 @@ for i in range(len(evt_files)):
 
         # Grab current event and event latency
         curr_event = df.iloc[j, :]
-        latency = event.Latency
+        latency = curr_event.Latency
 
         # And match the code to an event
         # CHECK BESA CODES
@@ -93,7 +94,20 @@ for i in range(len(evt_files)):
                 events.append('BLINK2')
                 latencies.append(latency + 205)
 
-    df_export = pd.DataFrame(data={'Event': events, 'Latency': latencies})
+    df = pd.DataFrame(data={'Event': events, 'Latency': latencies})
+
+    if clean: # User requests clean stuff
+        # Filter out incorrect responses.
+        bad_idx = []
+        for i in range(df.shape[0] - 3):
+            if df.iloc[i].Trigger == 'GO_PROMPT' and (df.iloc[i+2].Trigger == 'NO_RESPONSE' or
+                                                      df.iloc[i+2].Trigger == 'INCORRECT_RESPONSE'):
+                bad_idx.append(i); bad_idx.append(i+1); bad_idx.append(i+2)
+            if df.iloc[i].Trigger == 'NOGO_PROMPT' and df.iloc[i+2].Trigger == 'INCORRECT_RESPONSE':
+                bad_idx.append(i); bad_idx.append(i+1); bad_idx.append(i+2)
+        df = df.drop(df.index[bad_idx])
+        df = df.set_index(np.arange(0, df.shape[0], 1))
+
     subj_name = evt_files[i].split('/')[-1][:-4]
     print("Processed: " + export_path + '/' + subj_name + '.evt')
-    df_export.to_csv(export_path + '/' + subj_name + '.evt', sep='\t', index=False)
+    df.to_csv(export_path + '/' + subj_name + '.evt', sep='\t', index=False)

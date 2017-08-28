@@ -35,129 +35,52 @@ def get_filelist(import_path, extension):
     filelist = []
     for root, dirs, files in os.walk(import_path):
         filelist += glob.glob(os.path.join(root, '*.' + extension))
-        return filelist
+    return filelist
 
 
 def get_subject_slopes(subj, ch, slope_type):
     """ Returns list of slopes for specified channel of slope_type.
-    Arguments:
-        subj:       Dictionary of Subject objects.
-        ch:         Scalar, channel for which to get list of subject slopes.
-        slope_type: String, e.g., 'eyesc_slope' or 'eyeso_slope'
+    Parameters
+    ----------
+        subj : dict
+            Dictionary of Subject objects.
+        ch : int
+            Channel for which to get list of subject slopes.
+        slope_type : str
+            Which slope to grab. e.g., 'eyesc_slope' or 'eyeso_slope'
     """
     return [subj[i].psds[ch][slope_type + '_slope'][0] for i in range(subj['nbsubj'])]
 
-###############################################################################
 
-def main(argv):
-    """
-    Parameters : Change these before running.
+def make_export_dir(params):
+    """ Creates directory into which we'll save the outputs of the
+    analysis.
+
+    Since the same analysis is often run multiple times while
+    the script is tweaked, make_export_dir appends the run number at
+    the end of the directory name in order to avoid overwriting results
+    from a run done previously on the same day. An example of what the
+    created directory will look like:
+        2017-05-20-sensor-level/
+    Parameters
     ----------
-    montage : string
-        Note: Can also be set by command-line flag -m
-        montage we're running spectral_slopes on. Options are:
-            'dmn': Default mode network source model.
-            'frontal': Frontal source model.
-            'dorsal': Dorsal attention source model.
-            'ventral': Ventral attention source model.
-            'sensor-level': For running the original sensor-level data.
-
-    psd_buffer_lofreq : float
-        lower frequency bound for the PSD buffer we exclude from fitting.
-
-    psd_buffer_hifreq : float
-        upper frequency bound for the PSD buffer we exclude from fitting.
-
-    fitting_func : string
-        function we use for fitting to the PSDs. Options are:
-            'linreg': Simple linear regression.
-            'ransac': RANSAC, a robust fitting method.
-
-    fitting_lofreq : float
-        lower frequency bound for the PSD fitting.
-
-    fitting_hifreq : float
-        higher frequency bound for the PSD fitting.
-
-    trial_protocol : string
-        Note: Can also be set by command-line flag -p
-        specifies whether to modify trial lengths. available options:
-            'match_OA': cuts younger adult trials down by half in order
-            to make them match older adult trial lengths.
-
-    nwins_upperlimit : int
-        upper limit on number of windows to extract from the younger
-        adults. A value of 0 means no upper limit.
-
-    import_dir_mat : string
-        Note: Can also be set by command-line flag -i
-        directory from which we import .mat EEG files.
-
-    import_dir_evt : string
-        directory from which we import .evt event files.
-
-    export_dir : string
-        Note: Can also be set by command-line flag -o
-        directory to which we export the results, as a .csv file.
+        params : dict
+            Dictionary containing at least the following keys:
+            'export_dir' : str
+                Absolute path to the export directory
+            'time' : str
+                String generated through the following code:
+                    str(datetime.datetime.now()).split()[0]
+            'montage' : str
+                Montage that we're running. e.g., 'sensor-level', or
+                'dmn' for default mode network.
     """
-
-    params = OrderedDict()
-    params['montage']           = 'sensor-level'
-    params['recompute_psds']    = True
-    params['psd_buffer_lofreq'] = 7
-    params['psd_buffer_hifreq'] = 14
-    params['fitting_func']      = 'ransac'
-    params['fitting_lofreq']    = 2
-    params['fitting_hifreq']    = 24
-    params['trial_protocol']    = 'match_OA'
-    params['nwins_upperlimit']  = 0
-    params['import_path_csv']   = 'data/auxilliary/ya-oa.csv'
-    params['import_dir_mat']    = 'data/rs/full/source-dmn/MagCleanEvtFiltCAR-mat/'
-    params['import_dir_evt']    = 'data/rs/full/evt/clean/'
-    params['export_dir']        = 'data/runs/'
-
-    ###########################################################################
-
-    # Make sure we're working at the project root.
-    project_path = os.getcwd()
-    os.chdir(project_path[:project_path.find('psd-slope') + len('psd-slope-rs-gng')] + '/')
-
-    # Generate information about current run.
-    params['Time'] = str(datetime.datetime.now()).split()[0]
-    with open('.git/refs/heads/master', 'r') as f:
-        params['commit'] = f.read()[0:7]
-    params.move_to_end('commit', last=False)
-    params.move_to_end('Time', last=False)
-
-    # Take in command-line args, if they are present.
-    try:
-        opts, args = getopt.getopt(argv[1:], 'm:i:o:hp:')
-    except getopt.GetoptError:
-        print('Error: Bad input. To run:\n')
-        print('\tspectral_slopes.py -m <montage> -i <import_dir> -o <export_dir> -p <trial_protocol>\n')
-        print('Or, manually modify program parameters and run without command-line args.')
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-            print('Help:\n')
-            print('\tspectral_slopes.py -m <montage> -i <import_dir> -o <export_dir> -p <trial_protocol>\n')
-            print('Or, manually modify program parameters and run without command-line args.')
-            sys.exit(2)
-        elif opt == '-m':
-            params['montage'] = arg
-        elif opt == '-i':
-            params['import_dir_mat'] = arg
-        elif opt == '-o':
-            params['export_dir'] = arg
-        elif opt == '-p':
-            params['trial_protocol'] = arg
-
-    # Make a directory for this run.
-    export_dir_name = params['export_dir'] + '/' + params['Time'] + '-' +\
-                                                     params['montage'] + '/'
+    export_dir_name = (
+        params['export_dir'] + '/' + params['time'] + '-rs-' + params['montage'] + '/'
+    )
     num = 1
     while os.path.isdir(export_dir_name):
-        export_dir_name = params['export_dir'] + '/' + params['Time'] + '-' +\
+        export_dir_name = params['export_dir'] + '/' + params['time'] + '-' +\
                                       params['montage'] + '-' + str(num) + '/'
         num += 1
     params['export_dir'] = export_dir_name
@@ -171,6 +94,144 @@ def main(argv):
             print(line)
             params_file.write(line + '\n')
         print()
+    return params
+
+
+def get_cmdline_params(params):
+    """ Fetches command-line parameters.
+    Parameters
+    ----------
+        params : dict
+            Dictionary into which we'll place command-line params.
+    """
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'hm:i:e:c:o:p:',
+            ['fittingfunc=', 'fittinglo=', 'fittinghi=', 'bufferlo=', 'bufferhi=',
+             'trialprotocol=', 'nwinsupper='])
+    except getopt.GetoptError:
+        print('Error: Bad input. To run:\n')
+        print('\tspectral_slopes.py -m <montage> -i <import_dir> -o <export_dir> -p <trial_protocol>\n')
+        print('Or, manually modify program parameters and run without command-line args.')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print('Help:\n')
+            print('\tspectral_slopes.py -m <montage> -i <import_dir> -o <export_dir> -p <trial_protocol>\n')
+            print('Or, manually modify program parameters and run without command-line args.')
+            sys.exit(2)
+
+        # Parameters for file imports
+        elif opt == '-m':
+            params['montage'] = arg
+        elif opt == '-i':
+            params['import_dir_mat'] = arg
+        elif opt == '-e':
+            params['import_dir_evt'] = arg
+        elif opt == '-c':
+            params['import_path_csv'] = arg
+        elif opt == '-o':
+            params['export_dir'] = arg
+
+        # Parameters for fitting to PSD
+        elif opt == '--fittingfunc':
+            params['fitting_func'] = arg
+        elif opt == '--fittinglo':
+            params['fitting_lofreq'] = int(arg)
+        elif opt == '--fittinghi':
+            params['fitting_hifreq'] = int(arg)
+        elif opt == '--bufferlo':
+            params['psd_buffer_lofreq'] = int(arg)
+        elif opt == '--bufferhi':
+            params['psd_buffer_hifreq'] = int(arg)
+        elif opt == '--trialprotocol':
+            params['trial_protocol'] = arg
+        elif opt == '--nwinsupper':
+            params['nwins_upperlimit'] = int(arg)
+    return params
+
+###############################################################################
+
+def main(argv):
+    """
+    Parameters : Change these before running, or change them through
+    the command-line flags.
+    ----------
+    montage : string
+        Command-line flag: -m
+        montage we're running spectral_slopes on. Options are:
+            'dmn': Default mode network source model.
+            'frontal': Frontal source model.
+            'dorsal': Dorsal attention source model.
+            'ventral': Ventral attention source model.
+            'sensor-level': For running the original sensor-level data.
+    psd_buffer_lofreq : float
+        Command-line flag: --bufferlo=
+        lower frequency bound for the PSD buffer we exclude from fitting.
+    psd_buffer_hifreq : float
+        Command-line flag: --bufferhi=
+        upper frequency bound for the PSD buffer we exclude from fitting.
+    fitting_func : string
+        Command-line flag: --fittingfunc=
+        function we use for fitting to the PSDs. Options are:
+            'linreg': Simple linear regression.
+            'ransac': RANSAC, a robust fitting method.
+    fitting_lofreq : float
+        Command-line flag: --fittinglo=
+        lower frequency bound for the PSD fitting.
+    fitting_hifreq : float
+        Command-line flag: --fittinghi=
+        higher frequency bound for the PSD fitting.
+    trial_protocol : string
+        Command-line flag: -p
+        specifies whether to modify trial lengths. available options:
+            'match_OA': cuts younger adult trials down by half in order
+            to make them match older adult trial lengths.
+    nwins_upperlimit : int
+        upper limit on number of windows to extract from the younger
+        adults. A value of 0 means no upper limit.
+    import_dir_mat : string
+        Command-line flag: -i
+        directory from which we import .mat EEG files.
+    import_dir_evt : string
+        Commane-line flag: -e
+        directory from which we import .evt event files.
+    export_dir : string
+        Command-line flag: -o
+        directory to which we export the results, as a .csv file.
+    """
+
+    params = OrderedDict()
+    params['montage']           = 'sensor-level'
+    params['psd_buffer_lofreq'] = 7
+    params['psd_buffer_hifreq'] = 14
+    params['fitting_func']      = 'ransac'
+    params['fitting_lofreq']    = 2
+    params['fitting_hifreq']    = 24
+    params['trial_protocol']    = 'match_OA'
+    params['nwins_upperlimit']  = 0
+    params['import_path_csv']   = 'data/auxilliary/ya-oa-have-files-for-all-conds.csv'
+    params['import_dir_mat']    = 'data/rs/full/sensor-level/ExclFiltCARClust-mat/'
+    params['import_dir_evt']    = 'data/rs/full/evt/clean/'
+    params['export_dir']        = 'data/runs/'
+
+    ###########################################################################
+
+    # Make sure we're working at the project root.
+    project_path = os.getcwd()
+    os.chdir(project_path[:project_path.find('psd-slope') + len('psd-slope-rs-gng')] + '/')
+
+    # Generate information about current run.
+    params['time'] = str(datetime.datetime.now()).split()[0]
+    with open('.git/refs/heads/master', 'r') as f:
+        params['commit'] = f.read()[0:7]
+    params.move_to_end('commit', last=False)
+    params.move_to_end('time', last=False)
+
+    # Take in command-line args, if they are present.
+    params = get_cmdline_params(params)
+
+    # Make a directory for this run and write parameters to terminal and file.
+    params = make_export_dir(params)
 
     ##########################################################################
     # Compute PSDs and fit to slopes.
@@ -184,13 +245,13 @@ def main(argv):
 
     # Check whether we're missing any subject information (i.e., we have the
     # subject EEG, but they're not present in the .csv).
-    subjects = set(map(lambda x: x.split('/')[-1][:-4], matfiles))
-    missing = subjects - set(df.SUBJECT)
-    if len(missing) != 0:
-        for s in missing:
-            print('ERROR: Specified csv does not contain information for subject {}'.format(s))
-        raise Exception('\nMissing subject information from csv. Either remove subject file from\n'+
-                        'processing pipeline or add subject information to csv file.')
+    missing = [f for f in matfiles if f.split('/')[-1][:-4] not in set(df.SUBJECT)]
+    for f in missing:
+        print('NOTE: Specified csv does not contain information for subject {}'.format(f.split('/')[-1][:-4]))
+    if len(missing) > 0:
+        print('To include the above subjects, add their information to the .csv file.\n')
+    matfiles = [f for f in matfiles if f not in missing]
+
 
     # Import EEG data for each subject.
     subj = {}
@@ -224,14 +285,8 @@ def main(argv):
                            params['fitting_hifreq'])
         print('Done.\n')
 
-    # Write subj dictionary containing fits and slopes to disk.
-    filename = (params['export_dir'] + 'subj-' + str(params['fitting_lofreq']) +
-                '-' + str(params['fitting_hifreq']) + '-' + params['fitting_func'] + '.npy')
-    subj['time_computed'] = params['Time']
-    np.save(filename, subj)
-
     ##########################################################################
-    # Construct Pandas dataframe and export results to .csv file.
+    # Export results to .csv file, save all slopes/PSDs to disk.
 
     # Construct Pandas dataframe with subject information and slopes.
     data = {}
@@ -254,6 +309,16 @@ def main(argv):
     print('Saving fitted slopes at:\n', filename)
     df.to_csv(filename, index=False)
 
+    # Write subj dictionary containing fits and slopes to disk. Note
+    # that each Subject object is converted to a dictionary for easier
+    # future access.
+    filename = (params['export_dir'] + 'subj-' + str(params['fitting_lofreq']) +
+                '-' + str(params['fitting_hifreq']) + '-' + params['fitting_func'] + '.npy')
+    subj['time_computed'] = params['time']
+    for i in range(subj['nbsubj']):
+        subj[i] = subj[i].__dict__
+    np.save(filename, subj)
+
 
 if __name__ == '__main__':
-    main(sys.argv[:])
+    main(sys.argv)

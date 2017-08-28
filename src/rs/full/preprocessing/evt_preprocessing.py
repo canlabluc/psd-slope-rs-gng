@@ -1,24 +1,27 @@
 """
-This script removes unneeded markers from the EMSE-exported .evt files.
+This script cleans up EMSE-exported .evt files, through the use of
+a few different functions.
+
+rm_irrelevant_xml removes unneeded markers from the xml files.
 These are the following: '[seg]', '222', '252', '223', '255', as well as
-the unneeded headings at the top of the files, such as <bUseQID>
+the unneeded headings at the top of the files, such as <bUseQID>.
+
+Once these are clean, transform_xml_to_df imports the files and produces
+tab-separated csv files containing the event information, using Pandas.
 """
 
 import os
 import sys
 import glob
+import getopt
 
 import xmltodict
 import numpy as np
 import pandas as pd
 
-## Parameters ##################################################################
-
-import_path = '/Users/jorge/Desktop/raw-evt/'
-export_path = '/Users/jorge/Desktop/clean-evt/'
-
 ################################################################################
 
+# Auxilliary functions
 
 def get_filelist(import_path, extension):
     """
@@ -158,8 +161,30 @@ def print_seg_code_information(df, fname, i, trials, error_type):
         ntrial_latency/512
     ))
 
+
+def get_cmdline_params(params):
+    help_msg = '\tevt_preprocessing.py -i <import_dir> -o <export_dir>\n\n'
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'i:o:h')
+    except getopt.GetoptError:
+        print('Error: Bad input. To run:\n')
+        print(help_msg)
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print('Help:\n')
+            print(help_msg)
+            sys.exit(2)
+        elif opt == '-i':
+            params['import_path'] = arg
+        elif opt == '-o':
+            params['export_path'] = arg
+    return params
+
+
 ################################################################################
 
+# Preprocessing functions
 
 def rm_irrelevant_xml(import_path, export_path):
     """
@@ -221,9 +246,9 @@ def transform_xml_to_df(import_path, export_path):
 
 def rm_entire_trial_segs(import_path, export_path):
     TYPES_START = ['11', '10']
-    TYPES_STOP = ['21', '20']
-    SEGS_START = ['C1', 'O1']
-    SEGS_STOP = ['C2', 'O2']
+    TYPES_STOP  = ['21', '20']
+    SEGS_START  = ['C1', 'O1']
+    SEGS_STOP   = ['C2', 'O2']
     files = get_filelist(import_path, 'evt')
     for f in files:
 
@@ -298,10 +323,35 @@ def rm_intertrial_segs(import_path, export_path):
         df.to_csv(export_path + fname, sep='\t', index=False)
 
 
-################################################################################
+## Parameters ##################################################################
 
 
-rm_irrelevant_xml(import_path, export_path)
-transform_xml_to_df(export_path, export_path)
-# rm_entire_trial_segs(export_path, export_path)
-# rm_intertrial_segs(export_path, export_path)
+def main(argv):
+    """
+    Preprocessing .evt files.
+
+    Parameters
+    ----------
+    import_path : str
+        Absolute path to EMSE-exported .evt files in xml format,
+        cleaned through remove_irrelevant_xml.
+
+    export_path : str
+        Absolute path to directory in which to save tab-separated
+        Pandas dataframe, preprocessed .evt files.
+    """
+
+    params = dict()
+    params = get_cmdline_params(params)
+
+    print('Processing .evt files... ', end='')
+    rm_irrelevant_xml(params['import_path'], params['export_path'])
+    transform_xml_to_df(params['export_path'], params['export_path'])
+    rm_entire_trial_segs(params['export_path'], params['export_path'])
+    # rm_intertrial_segs(params['export_path'], params['export_path'])
+
+    print('Done.')
+
+
+if __name__ == '__main__':
+    main(sys.argv)

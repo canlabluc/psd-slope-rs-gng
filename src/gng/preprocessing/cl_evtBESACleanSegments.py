@@ -44,7 +44,7 @@ Notes:
             if df.iloc[j].Trigger == 'C2':
                 bad -= 1
         if bad != 0:
-        print("BAD FILE: {}".format(evt_files[0].split('/')[-1]))
+            print("BAD FILE: {}".format(evt_files[0].split('/')[-1]))
 """
 
 import os

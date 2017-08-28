@@ -30,6 +30,10 @@ class Subject:
         2. If 'all':
             take entire intertrial space
         """
+        self.events['types'] = set(map(lambda x: x[0], self.events['df'].Type))
+        for event_type in self.events['types']:
+            if event_type == 
+
 
 
 

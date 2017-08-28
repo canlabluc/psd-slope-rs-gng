@@ -18,8 +18,7 @@ class Subject:
         self.srate  = int(np.squeeze(datafile['srate']))
         self.data   = np.squeeze(datafile['data'])
         self.nbchan = len(self.data)
-        datafile['chans'] = np.squeeze(datafile['chans'])
-        self.chans  = [datafile['chans'][i][0] for i in range(len(datafile['chans']))]
+        self.chans  = [ch[0].astype(str) for ch in np.squeeze(datafile['chans'])]
         self.events = {}
         self.events['df'] = pd.read_csv(importpath_evt, sep='\t')
         self._construct_event_hierarchy()
