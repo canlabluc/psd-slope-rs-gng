@@ -1,5 +1,9 @@
 # log
 
+## August 29, 2017
+#### add main.ipynb for running rs pipeline
+Mirrored code from main.py into main.ipynb, so the resting state pipeline can now be run through either one.
+
 ## August 27, 2017
 #### general clean up of rs pipeline
 Cleaned up the resting state pipeline by adding a top-level function called main.py which controls preprocessing of .evt files and running the spectral_slopes.py analysis, so that users no longer have to modify more than a single file. Plus, it's python, so it will be easy to copy it over to a Jupyter notebook, which makes cross-platform running frictionless.

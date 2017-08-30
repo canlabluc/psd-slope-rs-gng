@@ -70,9 +70,6 @@ nwins_upperlimit : int
   adults. A value of 0 means no upper limit.
 """
 
-import os
-import sys
-import getopt
 from subprocess import check_call
 
 ## PARAMETERS #################################################################
