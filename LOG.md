@@ -1,12 +1,19 @@
 # log
 
+## September 3, 2017
+#### make sure all updated gng .evt files are here
+Previously, .evt files were coded such that the entire period prior to the start of the trials, and the period after all trials were done were coded as artifact. In order to be able to get a 'resting-state' baseline estimate of PSD slope during the GNG task, .evt files were updated to not have this artifact code. I've thus replaced all of our gng .evt files with these.
+
+
 ## August 29, 2017
 #### add main.ipynb for running rs pipeline
 Mirrored code from main.py into main.ipynb, so the resting state pipeline can now be run through either one.
 
+
 ## August 27, 2017
 #### general clean up of rs pipeline
 Cleaned up the resting state pipeline by adding a top-level function called main.py which controls preprocessing of .evt files and running the spectral_slopes.py analysis, so that users no longer have to modify more than a single file. Plus, it's python, so it will be easy to copy it over to a Jupyter notebook, which makes cross-platform running frictionless.
+
 
 ## June 5, 2017
 #### resting-state protocol in docs/, better docs in rs/.../spectral_slopes.py

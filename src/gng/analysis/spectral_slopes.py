@@ -97,20 +97,20 @@ def main(argv):
     params['psd_buffer_lofreq'] = 7
     params['psd_buffer_hifreq'] = 14
     params['fitting_func']      = 'ransac'
-    params['fitting_lofreq'] = 14
-    params['fitting_hifreq'] = 34
-    params['nwins_upperlimit'] = 0
-    params['protocol'] = 'all_clean' # 'all_clean_space', 'correct_go_trials', 'correct_nogo_trials',
-    params['import_path_csv'] = 'data/auxilliary/ya-oa.csv'
-    params['import_dir_mat'] = 'data/gng/ExclFiltCARClust-mat/'
-    params['import_dir_evt'] = 'data/gng/evt/clean/'
-    params['export_dir']     = 'data/runs/'
+    params['fitting_lofreq']    = 14
+    params['fitting_hifreq']    = 34
+    params['nwins_upperlimit']  = 0
+    params['protocol']          = 'all_clean' # 'all_clean_space', 'correct_go_trials', 'correct_nogo_trials',
+    params['import_path_csv']   = 'data/auxilliary/ya-oa.csv'
+    params['import_dir_mat']    = 'data/gng/ExclFiltCARClust-mat/'
+    params['import_dir_evt']    = 'data/gng/evt/clean/'
+    params['export_dir']        = 'data/runs/'
 
     ###########################################################################
 
     # Make sure we're working at the project root.
-    project_path = os.getcwd()
-    os.chdir(project_path[:project_path.find('psd-slope') + len('psd-slope')] + '/')
+    # project_path = os.getcwd()
+    # os.chdir(project_path[:project_path.find('psd-slope') + len('psd-slope')] + '/')
 
     # Generate information about current run.
     params['Time'] = str(datetime.datetime.now()).split()[0]
@@ -193,18 +193,6 @@ def main(argv):
 
         if params['protocol'] == 'correct_go_trials':
 
-
-
-
-
-
-        print('Computing PSDs... ', end='')
-        # TODO
-        if params['protocol'] == 'correct_go_trials':
-            subj[i].modify_trial_heirarchy() # Event-file reordering should occur inside of the Subject object.
-        elif params['protocol'] == 'correct_nogo_trials':
-            subj[i].modify_trial_heirarchy()
-        subj[i].compute_ch_psds(nwins=params['nwins_upperlimit'])
         print('Done.')
 
         #######################################

@@ -348,7 +348,18 @@ def main(argv):
     rm_irrelevant_xml(params['import_path'], params['export_path'])
     transform_xml_to_df(params['export_path'], params['export_path'])
     rm_entire_trial_segs(params['export_path'], params['export_path'])
-    # rm_intertrial_segs(params['export_path'], params['export_path'])
+    # rm_intertrial_segs(params['export_path'], params['export_path']) # TODO: Fix
+
+    # Subject 112118266 contains an extra erroneous trial which we
+    # simply remove from the processed .evt file:
+    files = get_filelist(params['export_path'], 'evt')
+    for i in range(len(files)):
+        if files[i].split('/')[-1] == '112118266.evt':
+            with open(files[i]) as bad_file:
+                lines = bad_file.readlines()
+            w = open(files[i], 'w')
+            w.writelines([event for event in lines[:-1]])
+            w.close()
 
     print('Done.')
 

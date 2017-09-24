@@ -30,20 +30,19 @@ And produces files that look like:
 import os
 import sys
 import glob
+import numpy as np
 import pandas as pd
 
 import_path = sys.argv[1]
 export_path = sys.argv[2]
-clean       = sys.argv[3]
-
-print(import_path)
-print(export_path)
+clean_file  = True
 
 evt_files = []
 for root, dirs, files in os.walk(import_path):
     evt_files += glob.glob(os.path.join(root, '*.evt'))
 
 for i in range(len(evt_files)):
+    print('Processing: {}...'.format(evt_files[i].split('/')[-1]), end='')
     df = pd.read_csv(evt_files[i], sep='\t')
     df.columns = ['Tmu', 'Code', 'Trigger', 'Comment']
     df.Trigger = list(map(lambda x: int(x) if len(x) < 3 and x != '-' else -1, list(df.Trigger)))
@@ -86,28 +85,69 @@ for i in range(len(evt_files)):
             else:
                 #print('NOT RECOGNIZED {}: \n\tLatency: {}\n\tCode: {}\n\tTrigger: {}\n\tComment: {}'.format(\
                 #      evt_files[i].split('/')[-1], event.Latency, event.Code, event.Trigger, event.Comment))
-                event = event[1]
+                event = curr_event[1]
+        # If the current event is a valid code, add it to the list.
         if event != 'INVALID':
             events.append(event)
             latencies.append(latency)
             if event == 'BLINK1': # Add tail end of blinks
                 events.append('BLINK2')
                 latencies.append(latency + 205)
-
+    # Construct Pandas dataframe using extracted events and latencies
     df = pd.DataFrame(data={'Event': events, 'Latency': latencies})
 
-    if clean: # User requests clean stuff
-        # Filter out incorrect responses.
+    # If the user has specified to return a cleaned file, we remove
+    # any trials which contain artifact markers, and remove trials
+    # with incorrect or no responses.
+    if clean_file:
+
+        ARTIFACT = ['ARTFCT1', 'ARTFCT2', 'BLINK1', 'BLINK2']
+
+        # Removing incorrect trials
+        # Find every single INCORRECT_RESPONSE and NO_RESPONSE marker.
+        # Then, search backward to find its corresponding FIXATION
+        # marker and mark the whole trial as artifact.
         bad_idx = []
-        for i in range(df.shape[0] - 3):
-            if df.iloc[i].Trigger == 'GO_PROMPT' and (df.iloc[i+2].Trigger == 'NO_RESPONSE' or
-                                                      df.iloc[i+2].Trigger == 'INCORRECT_RESPONSE'):
-                bad_idx.append(i); bad_idx.append(i+1); bad_idx.append(i+2)
-            if df.iloc[i].Trigger == 'NOGO_PROMPT' and df.iloc[i+2].Trigger == 'INCORRECT_RESPONSE':
-                bad_idx.append(i); bad_idx.append(i+1); bad_idx.append(i+2)
+        for j in range(df.shape[0]):
+            if df.iloc[j].Event in ['INCORRECT_RESPONSE', 'NO_RESPONSE']:
+                prior = df[df.Latency < df.iloc[j].Latency]
+                fixation_idx = prior[prior.Event.isin(['FIXATION'])].tail(1).index[0]
+                response_idx = prior[prior.Event.isin(['RESPONSE'])].tail(1).index[0]
+
+                # Replace the FIXATION and INCORR_RESP/NO_RESP markers
+                # with artifact markers, and throw away the RESPONSE
+                # marker between them.
+                df.set_value(fixation_idx, 'Event', 'ARTFCT1')
+                df.set_value(j,            'Event', 'ARTFCT2')
+                # df.at[fixation_idx, 'Event'] = 'ARTFCT1'
+                # df.at[j,            'Event'] = 'ARTFCT2'
+                bad_idx.append(response_idx)
+
+                # print('fixation_idx {}'.format(fixation_idx))
+                # print('response_idx {}'.format(response_idx))
+                # print('incorr/no    {}'.format(j))
         df = df.drop(df.index[bad_idx])
         df = df.set_index(np.arange(0, df.shape[0], 1))
 
+        # Removing correct-response trials that contain artifact
+        # For each FIXATION marker, check to see if that trial contains
+        # artifact markers. If it does, we throw it out as above.
+        for j in range(df.shape[0]):
+            if df.iloc[j].Event == 'FIXATION':
+                # Grab the corresponding RESPONSE marker's row index in
+                # the dataframe.
+                upcoming = df[df.Latency > df.iloc[j].Latency]
+                response_idx = upcoming[upcoming.Event.isin(['RESPONSE'])].head(1).index[0]
+
+                # Check if there are any ARTFCT markers between FIXATION
+                # and RESPONSE
+                markers = [df.iloc[k].Event for k in range(j+1, response_idx)]
+                if any(m in markers for m in ARTIFACT):
+                    # If there are, replace FIXATION and RESPONSE
+                    # markers with artifact markers.
+                    df.at[j,            'Event'] = 'ARTFCT1'
+                    df.at[response_idx, 'Event'] = 'ARTFCT2'
+
     subj_name = evt_files[i].split('/')[-1][:-4]
-    print("Processed: " + export_path + '/' + subj_name + '.evt')
+    print(' Done.')
     df.to_csv(export_path + '/' + subj_name + '.evt', sep='\t', index=False)

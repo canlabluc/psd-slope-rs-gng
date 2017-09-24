@@ -73,43 +73,50 @@ nwins_upperlimit : int
 from subprocess import check_call
 
 ## PARAMETERS #################################################################
+###############################################################################
 
 # Analysis and file import parameters
-analysis        = 'rs'
-montage         = 'sensor-level'
-preprocess_evts = True
-raw_evt_dir     = 'data/rs/full/evt/raw/' # Only used if preprocess_evts is True
-import_dir_evt  = 'data/rs/full/evt/clean/'
-import_dir_mat  = 'data/rs/full/sensor-level/ExclFiltCARClust-mat/'
-import_path_csv = 'data/auxilliary/ya-oa-have-files-for-all-conds.csv'
-export_dir      = 'data/runs/'
+analysis                 = 'rs'
+montage                  = 'source-dmn'
+import_dir_raw_evt       = 'data/rs/full/evt/raw/'
+import_dir_processed_evt = 'data/rs/full/evt/processed/'
+import_dir_mat           = 'data/rs/full/source-dmn/MagFiltCAR-mat/'
+import_path_csv          = 'data/auxilliary/ya-oa-have-files-for-all-conds.csv'
+export_dir               = 'data/runs/'
 
-# Fitting/PSD parameters
+# PSD Buffer and Fitting Parameters
 fitting_func      = 'ransac'
 fitting_lofreq    = 2
 fitting_hifreq    = 24
 psd_buffer_lofreq = 7
 psd_buffer_hifreq = 14
+
+# RESTING-STATE-SPECIFIC PARAMETERS
 trial_protocol    = 'match_OA'
 nwins_upperlimit  = 0
 
-## SCRIPT (Do not modify unless you know what you're doing) ##################
-##############################################################################
+# GO-NOGO-SPECIFIC PARAMETERS
+preset_analysis   = 'all_clean_data' # 'fixation_period', 'intertrial_interval', 'custom_marker'
+custom_marker     = 'FIXATION'
+window_range_lo   = -500
+window_range_hi   = 0
 
-# RESTING STATE ANALYSIS
+
+## SCRIPT (Do not modify unless you know what you're doing) ###################
+###############################################################################
+
+## RESTING STATE ANALYSIS ##
 if analysis == 'rs':
-  # Preprocess .evt files, if they need to be preprocessed.
-  if preprocess_evts:
-    import_dir_evt_raw = 'data/rs/full/evt/raw/'
-    check_call(['python', 'src/rs/full/preprocessing/evt_preprocessing.py',
-                  '-i', raw_evt_dir,
-                  '-o', import_dir_evt])
+  # Pre-process .evts based on analysis user requests
+  check_call(['python', 'src/rs/full/preprocessing/evt_preprocessing.py',
+                '-i', import_dir_raw_evt,
+                '-o', import_dir_processed_evt])
 
   # Run spectral_slopes.py
   check_call(['python', 'src/rs/full/analysis/spectral_slopes.py',
     '-m', montage,
     '-i', import_dir_mat,
-    '-e', import_dir_evt,
+    '-e', import_dir_processed_evt,
     '-c', import_path_csv,
     '-o', export_dir,
     '--fittingfunc='   + fitting_func,
@@ -120,6 +127,26 @@ if analysis == 'rs':
     '--trialprotocol=' + trial_protocol,
     '--nwinsupper='    + str(nwins_upperlimit)])
 
-# GO-NOGO ANALYSIS
+## GO-NOGO ANALYSIS ##
 elif analysis == 'gng':
-  print('GNG')
+  # Preprocess .evts based on analysis user requests
+  check_call(['python', 'src/gng/preprocessing/cl_evtBESAPreprocessor.py',
+                '-i', import_dir_raw_evt,
+                '-o', import_dir_processed_evt])
+
+  # Run spectral_slopes.py
+  check_call(['python', 'src/gng/analysis/spectral_slopes.py',
+    '-m', montage,
+    '-i', import_dir_mat,
+    '-e', import_dir_processed_evt,
+    '-c', import_path_csv,
+    '-o', export_dir,
+    '--fittingfunc='    + fitting_func,
+    '--fittinglo='      + str(fitting_lofreq),
+    '--fittinghi='      + str(fitting_hifreq),
+    '--bufferlo='       + str(psd_buffer_lofreq),
+    '--bufferhi='       + str(psd_buffer_hifreq),
+    '--presetanalysis=' + preset_analysis,
+    '--custommarker='   + custom_marker,
+    '--windowrangelo='  + str(window_range_lo),
+    '--windowrangehi='  + str(window_range_hi)])

@@ -216,10 +216,6 @@ def main(argv):
 
     ###########################################################################
 
-    # Make sure we're working at the project root.
-    project_path = os.getcwd()
-    os.chdir(project_path[:project_path.find('psd-slope') + len('psd-slope-rs-gng')] + '/')
-
     # Generate information about current run.
     params['time'] = str(datetime.datetime.now()).split()[0]
     with open('.git/refs/heads/master', 'r') as f:
@@ -251,7 +247,6 @@ def main(argv):
     if len(missing) > 0:
         print('To include the above subjects, add their information to the .csv file.\n')
     matfiles = [f for f in matfiles if f not in missing]
-
 
     # Import EEG data for each subject.
     subj = {}
