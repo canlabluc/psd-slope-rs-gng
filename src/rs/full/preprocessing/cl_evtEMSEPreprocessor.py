@@ -1,13 +1,36 @@
-"""
-This script cleans up EMSE-exported .evt files, through the use of
-a few different functions.
+#!/usr/local/bin/python3
+""" cl_evtEMSEPreprocessor
+Takes raw EMSE-exported evt files and exports them as a cleaner Pandas
+dataframe.
 
+Usage:
+    $ python cl_evtEMSEPreprocessor.py -i importpath -o exportpath
+
+Notes:
 rm_irrelevant_xml removes unneeded markers from the xml files.
 These are the following: '[seg]', '222', '252', '223', '255', as well as
 the unneeded headings at the top of the files, such as <bUseQID>.
 
 Once these are clean, transform_xml_to_df imports the files and produces
 tab-separated csv files containing the event information, using Pandas.
+
+cl_evtEMSEPreprocessor takes files that look like:
+
+    <EMSE_Event_List>
+    <bSaveNotation>0</bSaveNotation>
+    <sQID></sQID>
+    <bUseQID>1</bUseQID>
+    <Event><Name>[seg]</Name><Start>0</Start><Stop>0</Stop>...
+    ...
+
+And produces files that look like:
+
+      Type  Latency
+    0  111    36761
+    1   O1    36762
+    2   O2    67482
+    3  211    67480
+    ...
 """
 
 import os
@@ -165,7 +188,7 @@ def print_seg_code_information(df, fname, i, trials, error_type):
 def get_cmdline_params(params):
     help_msg = '\tevt_preprocessing.py -i <import_dir> -o <export_dir>\n\n'
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'i:o:h')
+        opts, args = getopt.getopt(sys.argv[1:], 'i:o:ht:')
     except getopt.GetoptError:
         print('Error: Bad input. To run:\n')
         print(help_msg)
@@ -179,6 +202,8 @@ def get_cmdline_params(params):
             params['import_path'] = arg
         elif opt == '-o':
             params['export_path'] = arg
+        elif opt == '-t':
+            params['trial_protocol'] = arg
     return params
 
 
@@ -348,7 +373,6 @@ def main(argv):
     rm_irrelevant_xml(params['import_path'], params['export_path'])
     transform_xml_to_df(params['export_path'], params['export_path'])
     rm_entire_trial_segs(params['export_path'], params['export_path'])
-    # rm_intertrial_segs(params['export_path'], params['export_path']) # TODO: Fix
 
     # Subject 112118266 contains an extra erroneous trial which we
     # simply remove from the processed .evt file:

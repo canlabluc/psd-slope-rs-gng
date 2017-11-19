@@ -108,7 +108,7 @@ window_range_hi   = 0
 ## RESTING STATE ANALYSIS ##
 if analysis == 'rs':
   # Pre-process .evts based on analysis user requests
-  check_call(['python', 'src/rs/full/preprocessing/evt_preprocessing.py',
+  check_call(['python', 'src/rs/full/preprocessing/cl_evtEMSEPreprocessor.py',
                 '-i', import_dir_raw_evt,
                 '-o', import_dir_processed_evt])
 

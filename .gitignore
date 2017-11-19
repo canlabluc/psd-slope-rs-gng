@@ -1,5 +1,10 @@
 # 2016-06-13: Don't include data
 extClfiltCAR-mat/
+# Or TODO.md, log
+TODO.md
+data/
+LOG.md
+.log-media/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
